@@ -26,7 +26,6 @@ dv.trial.preTrial   = dv.pa.preTrial + rand*dv.pa.jitterSize;
 dv.trial.fpWait     = dv.pa.fixWait;
 dv.trial.fpHold     = dv.pa.fixHold + rand*dv.pa.jitterSize;
 dv.trial.breakFixPenalty = dv.pa.breakFixPenalty;
-dv.trial.graceTime = dv.pa.graceTime; % in case we want to add jitter
 
 %-------------------------------------------------------------------------%
 %Trial Parameters
@@ -43,6 +42,7 @@ dv.trial.showCueTime = 0;
 dv.trial.showPairTime = 0;
 dv.trial.delayTime = 0;
 dv.trial.sowProbeTime = 0;
+
 
 %-------------------------------------------------------------------------%
 % Stimulus (object) angle and distance from center (fixation pt)**********
@@ -146,7 +146,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     %---------------------------------------------------------------------%
     %---------------------------------------------------------------------%
         
-    % 0) VIRGIN TRIAL - load images/make textures for current trial
+    % 0) VIRGIN TRIAL - load images/make textures
     dv = virginTrial(dv);
     
     % 1) TURN ON FIXATION DOT
@@ -161,22 +161,18 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     % 4) SHOW CUE
     dv = showCue(dv);
     
-    % 5) SHOW PAIR (Study Trial)
+    % 5) SHOW PAIR
     dv = showPair(dv);
     
-    % 5) DELAY (Test Trial)
+    % 5) DELAY 
     dv = delay(dv);
     
-    % 6) SHOW PROBE (Test Trial)
+    % 6) SHOW PROBE
     dv = showProbe(dv);
     
     % 7) Trial Outcome
     dv = trialComplete(dv);
     dv = breakFixation(dv);
-    
-    %---------------------------------------------------------------------%
-    %---------------------------------------------------------------------%
-    
         
     % Update Measurements - need this?????
     %---------------------------------------------------------------------%
@@ -372,7 +368,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
     
     % TRIAL COMPLETE -- GIVE REWARD  -
     % ********************************************** stuff in here we don't
-    % need/want???
+    % need/want
 %---------------------------------------------------------------------%
     function dv = trialComplete(dv)
         if dv.trial.state == dv.states.TRIALCOMPLETE
@@ -446,10 +442,10 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             
             if dv.trial.ttime > dv.trial.timeBreakFix + dv.trial.breakFixPenalty
                 if dv.trial.breakRestart
-                    dv.trial.state = dv.states.START; % option to restart trial to fix below, and probably cause other issues***
+                    dv.trial.state = dv.states.START; % option to restart trial to fix below, and probably cause other issues
                     dv.trial.nBreaks = dv.trial.nBreaks + 1;
                 else
-                dv.trial.flagNextTrial = true; % currently breaking fixation increments the trial so you would miss the presentation of certain pairs in my paradigm
+                dv.trial.flagNextTrial = true; % currently breaking fix increments the trial so you would miss the presentation of certain pairs
                 end
                 
             end
@@ -589,15 +585,14 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             end
             dv.trial.delayTime = GetSecs - dv.trial.delayTime;
             
-            if fixationheld(dv) || dv.trial.delayTime < dv.trial.graceTime % need a grace time for them to look back at the center! (does this work alright?)
+            if fixationheld(dv) || dv.trial.delayTime < % need a grace time for them to look back at the center!!!!!!!***********
                 
                 if dv.trial.delayTime <= dv.pa.delayTime
                     %%%% Delay (5s default)
                     Screen('FillRect', ds.ptr, dv.pa.centeredDelayRect); % what to do about color here?
                     
                 elseif dv.trial.delayTime > dv.pa.delayTime % briefly represent fixation pt to cue onset of memory probe
-                    
-                    %%% TURN ON FIXATION DOT %%% - does this work??????????? is this because of weird drawing all the time as bg color
+                    %%% TURN ON FIXATION DOT %%%
                     pdsDatapixxFlipBit(dv.events.FIXATION) % fp1 ON
                     
                 elseif dv.trial.delayTime >= dv.pa.delayTime + dv.pa.probeCueTime

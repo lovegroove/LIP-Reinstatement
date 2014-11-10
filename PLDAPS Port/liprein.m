@@ -17,7 +17,7 @@ dv.useMouse = 0; % same as above?
 
 
 % don't forget to CHANGE FILE PATHS
-% Load images function - *******************right now, this is setup to call new pairings every time you run the experiment, so you have to be careful comparing study and test, because you might overwrite it with a new order*********************************
+% Load images function - *******************right now, this is setup to call new pairings every time you run the experiment, so you have to be careful comparing study and test, because you might overwrite it with a new order
 % need a better way to do this and to save it the the PDS struct in run
 % file per trial...
 dv = loadImages(dv);
@@ -43,22 +43,15 @@ dv.pa.alpha = 6; % degrees of visual angle
 delayRect = [0 0 50 50];
 dv.pa.centeredDelayRect = CenterRectOnPointd(delayRect, dv.pa.xCenter, dv.pa.yCenter);
 
-
-% THIS IS IN RUN FUNC NOW - so we can manipulate it per trial - should we
-% keep anything in dv.pa still???
-% dv.pa.theta = 135; % angle from center of one object (in degrees) converted to radians in func (keep it this way?)
-% r = sqrt((dv.pa.Dx)^2 + (dv.pa.Dy)^2); % degrees of visual angle (which r will be the x and y dimensions)
-% dv.pa.object1loc = [dv.pa.xCenter + r * cos(dv.pa.theta) dv.pa.yCenter + r * sin(dv.pa.theta)];
-% dv.pa.object2loc = [dv.pa.xCenter + r * cos(dv.pa.theta+pi) dv.pa.yCenter + r * sin(dv.pa.theta+pi)];
-
-%% Timing
+%% Time & Space
 
 % Task Events - (was in ms, keep it that way?)
 dv.pa.sceneTime = 1;
 dv.pa.objectSceneTime = 2;
 dv.pa.probeCueTime = .5;
-dv.pa.delayTime = 5;
+dv.pa.delayTime = 4.5; % delay and probe cue time should add up to your desired total delay
 dv.pa.probeTime = 2;
+dv.pa.graceTime = .5; % long enough?
 
 % Reward time: is time that solenoid is opened for. set to 100 miliseconds  
 dv.pa.rewardTime = .1;
@@ -84,7 +77,8 @@ dv.pa.cursorW   = 8;   % cursor width in pixels
 
 
 
-%% States - dv.states
+%% States - dv.states (arbitrary values)
+
 dv.states.START     = 1;
 dv.states.FPON      = 2;
 dv.states.FPHOLD    = 3;
