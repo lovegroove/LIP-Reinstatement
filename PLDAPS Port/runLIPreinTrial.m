@@ -11,8 +11,10 @@ dv = defaultTrialVariables(dv); % setup default trial struct (need this?)
 %% Preallocation 
 %-------------------------------------------------------------------------%
 PDS.data.pairs = cell(dv.finish,4); % For saving correct objects and their placement
-% also need to allocate space for saving object locations and add that to
-% PDS**********************************************
+PDS.data.objectLocs = cell(dv.finish,1);
+PDS.breakRestart = cell(dv.finish,1);
+PDS.nBreaks = cell(dv.finish,1);
+dv.trial.objectLocs = {}; % not sure of dimensions right now
 
 % preallocate data aquisition variables
 flipTimes       = zeros(1e4,2);
@@ -516,7 +518,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 dv.trial.foilObject = dv.pairOrder{randsample(length(dv.pairOrder),1) ,1};
                 
                 % Also reroll here just in case you happen to pick the same object
-                while strcmp(dv.foilObject, dv.pairOrder{dv.j,1})
+                while strcmp(dv.trial.foilObject, dv.pairOrder{dv.j,1})
                     dv.trial.foilObject = dv.pairOrder{randsample(length(dv.pairOrder),1) ,1};
                 end
                 % Place objects randomly
@@ -614,7 +616,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             end
             dv.trial.delayTime = GetSecs - dv.trial.delayTime;
             
-            if fixationheld(dv) || dv.trial.delayTime < dv.trial.graceTime % need a grace time for them to look back at the center! (does this work alright?)
+            if fixationHeld(dv) || dv.trial.delayTime < dv.trial.graceTime % need a grace time for them to look back at the center! (does this work alright?)
                 
                 if dv.trial.delayTime <= dv.pa.delayTime
                     %%%% Delay (5s default)

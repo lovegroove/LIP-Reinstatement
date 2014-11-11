@@ -2,12 +2,10 @@ function dv = liprein(dv)
 % Condition file for LIP Reinstatement experiemnet, linked to
 % runLIPReinstatement, and called by runPLDAPS
 
-%dv =[]; % normally in the runPLDAPS file but for testing purposes
-
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
 dv.filePaths = 'shopRig'; % set here rather than in loadImages func now
-dv.trialType = 'study'; % choose trial type, 'study' or 'test'
+dv.trialType = 'test'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; also i am currently overwriting some dv.pa and dv.states below which could be cleaned up and customized
