@@ -1,6 +1,8 @@
 function dv = loadImages(dv)
 % [sceneOrder, objectOrder, objectPath, scenePath, objectFormat, sceneFormat, objectImages_mask, sceneImages_mask, objectImages, sceneImages] = loadImagesFunc
-dv.filePaths = 'realDeal'; % testingStim, conservativeStim, or naturalisticStim, for shapes - bow or wob
+
+% dv.filePaths is now set in liprein (the condition file)
+%dv.filePaths = 'shopRig'; % testingStim, conservativeStim, or naturalisticStim, for shapes - bow or wob
 
 switch dv.filePaths
     case 'testingStim'
@@ -38,6 +40,16 @@ switch dv.filePaths
         % File formats
         dv.fileInfo.objectFormat = 'tif';
         dv.fileInfo.sceneFormat = 'jpg';
+        
+    case 'shopRig'
+        % Sets Paths
+        dv.fileInfo.objectPath = '/Users/huklab/ELH/Stimuli/shapes/bow/';  % different slash on Macs
+        dv.fileInfo.scenePath = '/Users/huklab/ELH/Stimuli/natural40/';
+        
+        % File formats
+        dv.fileInfo.objectFormat = 'tif';
+        dv.fileInfo.sceneFormat = 'jpg';
+        
 end
 % Get Images from directories
 objectImages = dir([dv.fileInfo.objectPath '*.' dv.fileInfo.objectFormat]); 

@@ -5,7 +5,7 @@ function [PDS,dv] = runLIPreinTrial(PDS,dv)
 % dv.trial can be updated per trial to change paramters on each trial
 
 
-dv = defaultTrialVariables(dv); % setup default trial struct
+dv = defaultTrialVariables(dv); % setup default trial struct (need this?)
 
 
 %% Preallocation 
@@ -19,7 +19,13 @@ flipTimes       = zeros(1e4,2);
 loopTimes       = zeros(1e4,2);
 photodiodeTimes = zeros(1e4,2);
 eyepos          = zeros(1e4,4);     % preallocate eye position data
+
+% ISSUE - where does inputSamplingRate come from? when using eyetracking
+% funcs? perhaps add a boolean for use only when using eyetracking
+if dv.pass == 0
+dv.disp.inputSamplingRate = 240;
 eyeTimeStep     = 1/dv.disp.inputSamplingRate;
+end
 
 % add jitter
 dv.trial.preTrial   = dv.pa.preTrial + rand*dv.pa.jitterSize;
@@ -38,11 +44,12 @@ dv.trial.nBreaks = 0; % Initialize
 dv.trial.virgin = 1; % load images/make textures the first time through each trial
 % or use dv.trial.state == dv.trial.states.VIRGINTRIAL******
 
-% Initialize state times each trial
+% Initialize state times each trial (using different timers for these
+% states on purpose right now)
 dv.trial.showCueTime = 0;
 dv.trial.showPairTime = 0;
 dv.trial.delayTime = 0;
-dv.trial.sowProbeTime = 0;
+dv.trial.showProbeTime = 0;
 
 %-------------------------------------------------------------------------%
 % Stimulus (object) angle and distance from center (fixation pt)**********
@@ -89,7 +96,11 @@ dv = pdsKeyboardClearBuffer(dv);
 % preallocate for all eye samples and event data from the eyelink
 dv = pdsEyelinkStartTrial(dv);
 %-------------------------------------------------------------------------%
-
+%%% Start Datapixx Analog Recording
+%-------------------------------------------------------------------------%
+if isfield(dv, 'dp')
+    dv.dp = pdsDatapixxAdcStart(dv.dp);
+end
 
 %% Start & Sync Timing
 %-------------------------------------------------------------------------%
@@ -118,16 +129,20 @@ pdsDatapixxFlipBit(dv.events.TRIALSTART);  % start of trial (Plexon)
 %     PDS.datapixxstarttime(dv.j) = Datapixx('Gettime');
 % end
 
+if dv.pass == 0
 PDS.timing.eyelinkStartTime(dv.j) = Eyelink('TrackerTime');
 Eyelink('message', 'TRIALSTART');
+end
 
 HideCursor;
 dv.trial.ttime  = GetSecs - dv.trial.trstart;
 PDS.timing.syncTimeDuration(dv.j) = dv.trial.ttime;
 
-% Query the frame duration
-ifi = Screen('GetFlipInterval', ds.ptr);
-vbl = Screen('Flip', ds.ptr); %Initially synchronize with retrace, take base time in vbl
+
+% % Query the frame duration - MY EDITION (needed? what about datapixx?)
+% *****************
+ifi = Screen('GetFlipInterval', dv.disp.ptr);
+vbl = Screen('Flip', dv.disp.ptr); %Initially synchronize with retrace, take base time in vbl
 
 %% Main While Loop for the Trial******************************************
 %---------------------------------------------------------------------%
@@ -139,7 +154,10 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     %---------------------------------------------------------------------%
     % get mouse/eyetracker data
     
+    [dv.trial.cursorX,dv.trial.cursorY,dv.trial.isMouseButtonDown] = GetMouse;
+    
     dv = pdsGetEyePosition(dv); % Eye position or Mouse Position if UseMouse is flagged (within func)
+    
     %dv = pdsGetEyePosition(dv, updateQueue); % Need this update queue????????????????? 
     
     %%% TRIAL STATES %%% dv.trial.state
@@ -177,17 +195,20 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     %---------------------------------------------------------------------%
     %---------------------------------------------------------------------%
     
-        
-    % Update Measurements - need this?????
-    %---------------------------------------------------------------------%
-    dv.trial.ttime = GetSecs - dv.trial.trstart;
-    % update eye position (fast)
-    if dv.trial.ttime > dv.trial.timeLastEyePos + eyeTimeStep
-        eyepos(dv.trial.iSample,:) = [dv.trial.eyeX, dv.trial.eyeY, dv.trial.ttime, dv.trial.state];
-        dv.trial.timeLastEyePos = dv.trial.ttime;
-        dv.trial.iSample = dv.trial.iSample + 1;
-    end
     
+    if dv.pass == 0
+        
+        % Update Measurements - need this?????
+        %---------------------------------------------------------------------%
+        dv.trial.ttime = GetSecs - dv.trial.trstart;
+        % update eye position (fast)
+        if dv.trial.ttime > dv.trial.timeLastEyePos + eyeTimeStep
+            eyepos(dv.trial.iSample,:) = [dv.trial.eyeX, dv.trial.eyeY, dv.trial.ttime, dv.trial.state];
+            dv.trial.timeLastEyePos = dv.trial.ttime;
+            dv.trial.iSample = dv.trial.iSample + 1;
+        end
+        
+    end
     
     
     %% KEYBOARD
@@ -224,7 +245,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
  % draw textures in respective state functions or here?
  
  % FLIP ( or should we be doing their weird datapixx stuff???)
- vbl = Screen('Flip', ds.ptr, vbl + 0.5*ifi);
+ vbl = Screen('Flip', dv.disp.ptr, vbl + 0.5*ifi);
  
  %[ig ig flipTimes(dv.trial.iFrame,1) flipTimes(dv.trial.iFrame,2)] = Screen('Flip', dv.disp.ptr); % use this?  
 
@@ -234,7 +255,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     
 end % END WHILE LOOP
 
-Screen('Close');
+Screen('Close'); % was necessary in prototype version because of drawing all the textures
 
 PDS.timing.datapixxstoptime(dv.j) = Datapixx('GetTime');
 PDS.timing.trialend(dv.j) = GetSecs- dv.trial.trstart;
@@ -270,19 +291,23 @@ PDS.timing.photodiodeFlips{dv.j} = photodiodeTimes(1:dv.trial.iPhotodiode -1,:);
 PDS.timing.pldapsLoopTimes{dv.j}    = loopTimes(1:dv.trial.iLoop-1,:);
 PDS.timing.ptbTrialStart(dv.j)      = dv.trial.trstart;
 PDS.timing.ptbFliptimes{dv.j}       = flipTimes(flipTimes(:,1)~=0,:);
-PDS.timing.stimRefreshTime{dv.j} = stimRefreshTime(~isnan(stimRefreshTime));
+% PDS.timing.stimRefreshTime{dv.j} =
+% stimRefreshTime(~isnan(stimRefreshTime)); % need this?
 
 if isfield(dv, 'dp')
     analogTime = linspace(dv.dp.adctstart, dv.dp.adctend, size(dv.dp.bufferData,2));
     PDS.data.datapixxAnalog{dv.j} = [analogTime(:) dv.dp.bufferData'];
 end
-%Eyelink
-PDS.data.eyeposLoop{dv.j} = eyepos;
-PDS.data.eyelinkSampleBuffer{dv.j}  =  dv.el.sampleBuffer(:,~isnan(dv.el.sampleBuffer(1,:)));
-PDS.data.eyelinkEventBuffer{dv.j}   =  dv.el.eventBuffer(:,~isnan(dv.el.eventBuffer(1,:)));
-PDS.data.eyelinkQueueStruct = eye;
 
-PDS.eyepos{dv.j}         = eyepos(1:dv.trial.iSample+1,:);  % remove extra
+if dv.pass == 0
+    %Eyelink
+    PDS.data.eyeposLoop{dv.j} = eyepos;
+    PDS.data.eyelinkSampleBuffer{dv.j}  =  dv.el.sampleBuffer(:,~isnan(dv.el.sampleBuffer(1,:)));
+    PDS.data.eyelinkEventBuffer{dv.j}   =  dv.el.eventBuffer(:,~isnan(dv.el.eventBuffer(1,:)));
+    PDS.data.eyelinkQueueStruct = eye;
+    
+    PDS.eyepos{dv.j}         = eyepos(1:dv.trial.iSample+1,:);  % remove extra    
+end
 
 fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
 
@@ -353,14 +378,14 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         dv.trial.fpWin = dv.pa.fpWin*dv.disp.ppd;
         % check if fixation is held
         if dv.trial.state == dv.states.FPHOLD
-            if dv.trial.ttime > dv.trial.timeFpEntered + dv.trial.fpOffset && fixationHeld(dv)
+            if dv.trial.ttime > dv.trial.timeFpEntered && fixationHeld(dv) % was fixPtOffset + timeFpEntered but I don't think that applies to mine
                 dv.trial.colorFixDot    = dv.disp.clut.bg;
                 dv.trial.colorFixWindow = dv.disp.clut.bg;
                 pdsDatapixxFlipBit(dv.events.FIXATION) % fixation cross
                 dv.trial.ttime      = GetSecs - dv.trial.trstart;
                 dv.trial.timeFpOff  = dv.trial.ttime;
                 dv.trial.state      = dv.states.SHOWCUE;  % switching state to show cue (scene)
-            elseif dv.trial.ttime < dv.trial.timeFpEntered + dv.trial.fpOffset && ~fixationHeld(dv)
+            elseif dv.trial.ttime < dv.trial.timeFpEntered && ~fixationHeld(dv)
                 dv.trial.colorFixDot    = dv.disp.clut.bg;
                 dv.trial.colorFixWindow = dv.disp.clut.bg;
                 pdsDatapixxFlipBit(dv.events.BREAKFIX)
@@ -376,11 +401,11 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %---------------------------------------------------------------------%
     function dv = trialComplete(dv)
         if dv.trial.state == dv.states.TRIALCOMPLETE
-            dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
-            dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
+%             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
+%             dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
-            dv.trial.colorTarget1Window = dv.disp.clut.bg;
-            dv.trial.colorTarget2Window = dv.disp.clut.bg;
+%             dv.trial.colorTarget1Window = dv.disp.clut.bg;
+%             dv.trial.colorTarget2Window = dv.disp.clut.bg;
             dv.trial.good = 1;
             if dv.pa.freeOn == 0
                 if dv.trial.targ1Chosen == dv.trial.targ1Correct
@@ -470,15 +495,15 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             
             % Background
             dv.trial.sceneImage = imread(dv.trial.sceneImageFile, dv.fileInfo.sceneFormat); % Read in image
-            dv.trial.sceneImage = imresize(dv.trial.sceneImage, [ds.winRect(4) ds.winRect(3)]); % Resize Image to screen - [y,x] weird
-            dv.trial.sceneImageTexture = Screen('MakeTexture', ds.ptr, dv.trial.sceneImage); % Create Texture
+            dv.trial.sceneImage = imresize(dv.trial.sceneImage, [dv.disp.winRect(4) dv.disp.winRect(3)]); % Resize Image to screen - [y,x] weird
+            dv.trial.sceneImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.sceneImage); % Create Texture
             %---------------------------------------------------------------------%
             % For STUDY Trial Type
             if strcmp(dv.trialType, 'study')
                 
                 % Object - make texture and assign location
                 dv.trial.objectImage = imread(dv.trial.objectImageFile, dv.fileInfo.objectFormat); % Read in image
-                dv.trial.objectImageTexture = Screen('MakeTexture', ds.ptr, dv.trial.objectImage); % Create Texture
+                dv.trial.objectImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.objectImage); % Create Texture
                 [s1, s2, s3] = size(dv.trial.objectImage);
                 dv.trial.baseRect = [0 0 s1 s2];
                 dv.trial.destRect = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.pa.xCenter, dv.pa.yCenter); %Set size and location (find a better way to do size manipulations)
@@ -503,14 +528,14 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 
                 % Object 1 - make texture and assign location
                 dv.trial.object1Image = imread(dv.trial.object1, dv.fileInfo.objectFormat); % Read in image
-                dv.trial.object1ImageTexture = Screen('MakeTexture', ds.ptr, dv.trial.object1Image); % Create Texture
+                dv.trial.object1ImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.object1Image); % Create Texture
                 [s1, s2, s3] = size(dv.trial.object1Image);
                 dv.trial.baseRect = [0 0 s1 s2];
                 dv.trial.destRect1 = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.trial.object1loc(1), dv.trial.object1loc(2)); %Set size and location
                 
                 % Object 2 - make texture and assign location
                 dv.trial.object2Image = imread(dv.trial.object2, dv.fileInfo.objectFormat); % Read in image
-                dv.trial.object2ImageTexture = Screen('MakeTexture', ds.ptr, dv.trial.object2Image); % Create Texture
+                dv.trial.object2ImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.object2Image); % Create Texture
                 [s1, s2, s3] = size(dv.trial.object2Image);
                 dv.trial.baseRect = [0 0 s1 s2];
                 dv.trial.destRect2 = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.trial.object2loc(1), dv.trial.object2loc(2)); %Set size and location
@@ -539,9 +564,9 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             dv.trial.showCueTime = GetSecs - dv.trial.showCueTime;
             
             %%%%%% Scene Alone (1s default)
-            Screen('DrawTexture',ds.ptr,dv.trial.sceneImageTexture); % Draw Texture (same texture variable for both trial types?)
+            Screen('DrawTexture',dv.disp.ptr,dv.trial.sceneImageTexture); % Draw Texture (same texture variable for both trial types?)
             
-            if dv.trial.showCuetime >= dv.pa.sceneTime
+            if dv.trial.showCueTime >= dv.pa.sceneTime
                 
                 if strcmp(dv.trialType, 'study')
                     dv.trial.state = dv.states.SHOWPAIR;
@@ -568,11 +593,11 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             
             %%%%%% Scene and Object (2s default)
             % Scene
-            Screen('DrawTexture',ds.ptr,dv.trial.sceneImageTexture);
+            Screen('DrawTexture',dv.disp.ptr,dv.trial.sceneImageTexture);
             % Object
-            Screen('DrawTexture',ds.ptr,dv.trial.objectImageTexture,[],dv.trial.destRect); % Draw Texture
+            Screen('DrawTexture',dv.disp.ptr,dv.trial.objectImageTexture,[],dv.trial.destRect); % Draw Texture
             
-            if dv.trial.showPairtime >= dv.pa.objectSceneTime
+            if dv.trial.showPairTime >= dv.pa.objectSceneTime
                 dv.trial.state = dv.states.TRIALCOMPLETE;
             end
             
@@ -593,7 +618,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 
                 if dv.trial.delayTime <= dv.pa.delayTime
                     %%%% Delay (5s default)
-                    Screen('FillRect', ds.ptr, dv.pa.centeredDelayRect); % what to do about color here?
+                    Screen('FillRect', dv.disp.ptr, dv.pa.centeredDelayRect); % what to do about color here?
                     
                 elseif dv.trial.delayTime > dv.pa.delayTime % briefly represent fixation pt to cue onset of memory probe
                     
@@ -613,7 +638,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 % SHOW PROBE
 %---------------------------------------------------------------------%
     function dv = showProbe(dv)
-        if dv.trial.state == dv.states.showProbe
+        if dv.trial.state == dv.states.SHOWPROBE
             % just for test trials
             
             if dv.trial.showProbeTime == 0 % reset timer
@@ -624,16 +649,16 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         
                 %%%%%% Scene and 2 Objects (2s)
                 % ******** Scene ********
-                Screen('DrawTexture',ds.ptr,sceneImageTexture);
+                Screen('DrawTexture',dv.disp.ptr,sceneImageTexture);
                 
                 % ******** Object 1 ********
-                Screen('DrawTexture',ds.ptr,dv.trial.object1ImageTexture,[],dv.trial.destRect1); % Draw Texture
+                Screen('DrawTexture',dv.disp.ptr,dv.trial.object1ImageTexture,[],dv.trial.destRect1); % Draw Texture
                 
                 % ******** Object 2 ********
-                Screen('DrawTexture',ds.ptr,dv.trial.object2ImageTexture,[],dv.trial.destRect2); % Draw Texture
+                Screen('DrawTexture',dv.disp.ptr,dv.trial.object2ImageTexture,[],dv.trial.destRect2); % Draw Texture
         end
         
-        if dv.trial.showProbetime >= dv.pa.probeTime
+        if dv.trial.showProbeTime >= dv.pa.probeTime
             dv.trial.state = dv.states.TRIALCOMPLETE;
         end
         

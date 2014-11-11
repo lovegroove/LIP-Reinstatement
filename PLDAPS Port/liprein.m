@@ -2,18 +2,21 @@ function dv = liprein(dv)
 % Condition file for LIP Reinstatement experiemnet, linked to
 % runLIPReinstatement, and called by runPLDAPS
 
-dv =[]; % normally in the runPLDAPS file but for testing purposes
+%dv =[]; % normally in the runPLDAPS file but for testing purposes
 
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
+dv.filePaths = 'shopRig'; % set here rather than in loadImages func now
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
-%dv = pdsDefaultTrialStructure(dv); % need/want this??????
+
+dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; also i am currently overwriting some dv.pa and dv.states below which could be cleaned up and customized
+
 dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need????
 
 % Options
-dv.pass = 0; % ignore eyetracker
-dv.useMouse = 0; % same as above? 
+dv.pass = 1; % ignore eyetracker
+dv.useMouse = 1; % same as above? 
 
 
 % don't forget to CHANGE FILE PATHS
@@ -29,15 +32,15 @@ end
 
 %% Parameters - dv.pa
 
-% Stimulus Size and Location (ds - display parameters)
+% Stimulus Size and Location (dv.disp - display parameters)
 dv.pa.objectSize = .25; % in percent of baseRect, better way to do this? 
 
 %%%%% Test Trial Stimulus Location and Geometry Parameters
 dv.pa.alpha = 6; % degrees of visual angle
-[dv.pa.Dx, dv.pa.Dy] = calcVisAngDS(dv.pa.alpha, ds.viewdist, ds.widthcm, ds.heightcm, ds.windowRect(3), ds.windowRect(4)); % Func to calculate visual angle, relies on ds
+[dv.pa.Dx, dv.pa.Dy] = calcVisAngDS(dv.pa.alpha, dv.disp.viewdist, dv.disp.widthcm, dv.disp.heightcm, dv.disp.winRect(3), dv.disp.winRect(4)); % Func to calculate visual angle
 
 % Get the center coordinate of the window
-[dv.pa.xCenter, dv.pa.yCenter] = RectCenter(ds.windowRect);
+[dv.pa.xCenter, dv.pa.yCenter] = RectCenter(dv.disp.winRect);
 
 % Make Delay box
 delayRect = [0 0 50 50];
@@ -53,7 +56,8 @@ dv.pa.delayTime = 4.5; % delay and probe cue time should add up to your desired 
 dv.pa.probeTime = 2;
 dv.pa.graceTime = .5; % long enough?
 
-% Reward time: is time that solenoid is opened for. set to 100 miliseconds  
+% Reward time: is time that solenoid is opened for. set to 100 miliseconds
+dv.pa.freeOn = 1; % if free trial, give reward independent of choice, right now we have no choice
 dv.pa.rewardTime = .1;
 dv.pa.rewardWait = 0; 
 dv.pa.breakFixPenalty = 2;
