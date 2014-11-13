@@ -5,7 +5,7 @@ function dv = liprein(dv)
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
 dv.filePaths = 'shopRig'; % set here rather than in loadImages func now
-dv.trialType = 'test'; % choose trial type, 'study' or 'test'
+dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; also i am currently overwriting some dv.pa and dv.states below which could be cleaned up and customized
@@ -13,8 +13,8 @@ dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for 
 dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need????
 
 % Options
-dv.pass = 1; % ignore eyetracker
-dv.useMouse = 1; % same as above? 
+dv.pass = 1; % ignore eyetracker by flagging fixationHeld as always true
+dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
 
 
 % don't forget to CHANGE FILE PATHS
@@ -48,7 +48,7 @@ dv.pa.centeredDelayRect = CenterRectOnPointd(delayRect, dv.pa.xCenter, dv.pa.yCe
 
 % Task Events - (was in ms, keep it that way?)
 dv.pa.sceneTime = 1;
-dv.pa.objectSceneTime = 2;
+dv.pa.showPairTime = 2;
 dv.pa.probeCueTime = .5;
 dv.pa.delayTime = 4.5; % delay and probe cue time should add up to your desired total delay
 dv.pa.probeTime = 2;
@@ -85,7 +85,7 @@ dv.states.START     = 1;
 dv.states.FPON      = 2;
 dv.states.FPHOLD    = 3;
 
-dv.states.VIRGINTRIAL = 4;
+%dv.states.VIRGINTRIAL = 4;
 
 dv.states.TRIALCOMPLETE = 6;
 dv.states.BREAKFIX  = 7;

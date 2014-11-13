@@ -22,8 +22,6 @@ loopTimes       = zeros(1e4,2);
 photodiodeTimes = zeros(1e4,2);
 eyepos          = zeros(1e4,4);     % preallocate eye position data
 
-% ISSUE - where does inputSamplingRate come from? when using eyetracking
-% funcs? perhaps add a boolean for use only when using eyetracking
 if dv.pass == 0
 dv.disp.inputSamplingRate = 240;
 eyeTimeStep     = 1/dv.disp.inputSamplingRate;
@@ -40,28 +38,19 @@ dv.trial.graceTime = dv.pa.graceTime; % in case we want to add jitter
 %Trial Parameters
 
 dv.trial.breakRestart = 0; % (binary option) Restart trial when fixation is broken rather than go to next trail, so we don't miss pairings
-
 dv.trial.nBreaks = 0; % Initialize
 
+% Set flags
 dv.trial.virgin = 1; % load images/make textures the first time through each trial
-% or use dv.trial.state == dv.trial.states.VIRGINTRIAL******
-
-% Initialize state times each trial (using different timers for these
-% states on purpose right now)
-dv.trial.showCueTime = 0;
-dv.trial.showPairTime = 0;
-dv.trial.delayTime = 0;
-dv.trial.showProbeTime = 0;
+dv.trial.showCueFlag = 1;
+dv.trial.showPairFlag = 1;
+dv.trial.delayFlag = 1;
+dv.trial.showProbeFlag = 1;
 
 %-------------------------------------------------------------------------%
 % Stimulus (object) angle and distance from center (fixation pt)**********
 dv.trial.theta = 135; % angle from center of one object (in degrees) converted to radians in func (can randomize this per trial if desired)
 dv = stimLoc(dv);
-% Make this a seperate stimulus lcoation support function???
-% r = sqrt((dv.pa.Dx)^2 + (dv.pa.Dy)^2); % degrees of visual angle (which r will be the x and y dimensions)
-% dv.trial.object1loc = [dv.pa.xCenter + r * cos(dv.trial.theta) dv.pa.yCenter + r * sin(dv.trial.theta)];
-% dv.trial.object2loc = [dv.pa.xCenter + r * cos(dv.trial.theta+pi) dv.pa.yCenter + r * sin(dv.trial.theta+pi)];
-
 
 %-------------------------------------------------------------------------%
 %************************************ need this stuff????****************
@@ -159,7 +148,6 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     [dv.trial.cursorX,dv.trial.cursorY,dv.trial.isMouseButtonDown] = GetMouse;
     
     dv = pdsGetEyePosition(dv); % Eye position or Mouse Position if UseMouse is flagged (within func)
-    
     %dv = pdsGetEyePosition(dv, updateQueue); % Need this update queue????????????????? 
     
     %%% TRIAL STATES %%% dv.trial.state
@@ -558,17 +546,22 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         
         if dv.trial.state == dv.states.SHOWCUE 
             
-            % using internal timers for each state to facilitate modularity
-            % and future changes (might not be the best choice
-            if dv.trial.showCueTime == 0 % reset timer first time through
-                dv.trial.showCueTime = 0;
+            if dv.trial.showCueFlag
+            dv.trial.ttime = GetSecs - dv.trial.trstart;
+            dv.trial.timeShowCueStart = dv.trial.ttime;
+            dv.trial.showCueFlag = 0;
             end
-            dv.trial.showCueTime = GetSecs - dv.trial.showCueTime;
+%             % using internal timers for each state to facilitate modularity
+%             % and future changes (might not be the best choice
+%             if dv.trial.showCueTime == 0 % reset timer first time through
+%                 dv.trial.showCueTime = 0;
+%             end
+%             dv.trial.showCueTime = GetSecs - dv.trial.showCueTime;
             
             %%%%%% Scene Alone (1s default)
             Screen('DrawTexture',dv.disp.ptr,dv.trial.sceneImageTexture); % Draw Texture (same texture variable for both trial types?)
             
-            if dv.trial.showCueTime >= dv.pa.sceneTime
+            if dv.trial.ttime >= dv.pa.sceneTime + dv.trial.timeShowCueStart
                 
                 if strcmp(dv.trialType, 'study')
                     dv.trial.state = dv.states.SHOWPAIR;
@@ -588,10 +581,16 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.SHOWPAIR 
             % Just for study trials
             
-            if dv.trial.showPairTime == 0 % reset timer first time through
-                dv.trial.showPairTime = 0; 
+            if dv.trial.showPairFlag
+            dv.trial.ttime = GetSecs - dv.trial.trstart;
+            dv.trial.timeShowPairStart = dv.trial.ttime;
+            dv.trial.showPairFlag = 0;
             end
-            dv.trial.showPairTime = GetSecs - dv.trial.showPairTime;
+%             
+%             if dv.trial.showPairTime == 0 % reset timer first time through
+%                 dv.trial.showPairTime = 0; 
+%             end
+%             dv.trial.showPairTime = GetSecs - dv.trial.showPairTime;
             
             %%%%%% Scene and Object (2s default)
             % Scene
@@ -599,7 +598,9 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             % Object
             Screen('DrawTexture',dv.disp.ptr,dv.trial.objectImageTexture,[],dv.trial.destRect); % Draw Texture
             
-            if dv.trial.showPairTime >= dv.pa.objectSceneTime
+            if dv.trial.ttime >= dv.pa.showPairTime + dv.trial.timeShowPairStart
+                dv.trial.ttime = GetSecs - dv.trial.trstart;
+                dv.trial.timeComplete = dv.trial.ttime;
                 dv.trial.state = dv.states.TRIALCOMPLETE;
             end
             
@@ -611,23 +612,25 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
  %---------------------------------------------------------------------%
     function dv = delay(dv)
         if dv.trial.state == dv.states.DELAY
-            if dv.trial.delayTime == 0 % reset timer
-                dv.trial.delayTime = 0; 
-            end
-            dv.trial.delayTime = GetSecs - dv.trial.delayTime;
             
-            if fixationHeld(dv) || dv.trial.delayTime < dv.trial.graceTime % need a grace time for them to look back at the center! (does this work alright?)
+            if dv.trial.delayFlag
+            dv.trial.ttime = GetSecs - dv.trial.trstart;
+            dv.trial.timeDelayStart = dv.trial.ttime;
+            dv.trial.delayFlag = 0;
+            end
+            
+            if fixationHeld(dv) || dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart % need a grace time for them to look back at the center! (does this work alright?)
                 
-                if dv.trial.delayTime <= dv.pa.delayTime
+                if dv.trial.ttime <= dv.trial.timeDelayStart + dv.pa.delayTime
                     %%%% Delay (5s default)
                     Screen('FillRect', dv.disp.ptr, dv.pa.centeredDelayRect); % what to do about color here?
                     
-                elseif dv.trial.delayTime > dv.pa.delayTime % briefly represent fixation pt to cue onset of memory probe
+                elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart % briefly represent fixation pt to cue onset of memory probe
                     
                     %%% TURN ON FIXATION DOT %%% - does this work??????????? is this because of weird drawing all the time as bg color
                     pdsDatapixxFlipBit(dv.events.FIXATION) % fp1 ON
                     
-                elseif dv.trial.delayTime >= dv.pa.delayTime + dv.pa.probeCueTime
+                elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime
                     dv.trial.state = dv.states.SHOWPROBE;
                 end
                 
@@ -643,27 +646,28 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.SHOWPROBE
             % just for test trials
             
-            if dv.trial.showProbeTime == 0 % reset timer
-                dv.trial.showProbeTime = 0; 
+            if dv.trial.showProbeFlag
+                dv.trial.ttime = GetSecs - dv.trial.trstart;
+                dv.trial.timeShowProbeStart = dv.trial.ttime;
+                dv.trial.showProbeFlag = 0;
             end
             
-            dv.trial.showProbeTime = GetSecs - dv.trial.showProbeTime;
-        
-                %%%%%% Scene and 2 Objects (2s)
-                % ******** Scene ********
-                Screen('DrawTexture',dv.disp.ptr,sceneImageTexture);
-                
-                % ******** Object 1 ********
-                Screen('DrawTexture',dv.disp.ptr,dv.trial.object1ImageTexture,[],dv.trial.destRect1); % Draw Texture
-                
-                % ******** Object 2 ********
-                Screen('DrawTexture',dv.disp.ptr,dv.trial.object2ImageTexture,[],dv.trial.destRect2); % Draw Texture
+            %%%%%% Scene and 2 Objects (2s)
+            % ******** Scene ********
+            Screen('DrawTexture',dv.disp.ptr,dv.trial.sceneImageTexture);
+            
+            % ******** Object 1 ********
+            Screen('DrawTexture',dv.disp.ptr,dv.trial.object1ImageTexture,[],dv.trial.destRect1); % Draw Texture
+            
+            % ******** Object 2 ********
+            Screen('DrawTexture',dv.disp.ptr,dv.trial.object2ImageTexture,[],dv.trial.destRect2); % Draw Texture
+            
+            if dv.trial.ttime >= dv.pa.probeTime + dv.trial.timeShowProbeStart
+                dv.trial.ttime = GetSecs - dv.trial.trstart;
+                dv.trial.timeComplete = dv.trial.ttime;
+                dv.trial.state = dv.states.TRIALCOMPLETE;
+            end
         end
-        
-        if dv.trial.showProbeTime >= dv.pa.probeTime
-            dv.trial.state = dv.states.TRIALCOMPLETE;
-        end
-        
     end
 
 
