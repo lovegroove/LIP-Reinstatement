@@ -29,6 +29,7 @@ end
 
 % add jitter
 dv.trial.preTrial   = dv.pa.preTrial + rand*dv.pa.jitterSize;
+dv.trial.fixPtOffset = dv.pa.fixPtOffset; %+ rand*dv.pa.jitterSize;
 dv.trial.fpWait     = dv.pa.fixWait;
 dv.trial.fpHold     = dv.pa.fixHold + rand*dv.pa.jitterSize;
 dv.trial.breakFixPenalty = dv.pa.breakFixPenalty;
@@ -41,6 +42,7 @@ dv.trial.breakRestart = 0; % (binary option) Restart trial when fixation is brok
 dv.trial.nBreaks = 0; % Initialize
 
 % Set flags
+dv.trial.fixFlagOn = 0;
 dv.trial.virgin = 1; % load images/make textures the first time through each trial
 dv.trial.showCueFlag = 1;
 dv.trial.showPairFlag = 1;
@@ -49,7 +51,7 @@ dv.trial.showProbeFlag = 1;
 
 %-------------------------------------------------------------------------%
 % Stimulus (object) angle and distance from center (fixation pt)**********
-dv.trial.theta = 135; % angle from center of one object (in degrees) converted to radians in func (can randomize this per trial if desired)
+dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func (can randomize this per trial if desired)
 dv = stimLoc(dv);
 
 %-------------------------------------------------------------------------%
@@ -231,14 +233,14 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
 
     %% DRAWING
  %---------------------------------------------------------------------%
-    
- % draw textures in respective state functions or here?
+
+ if dv.trial.fixFlagOn
+ Screen('DrawLines', dv.disp.ptr, dv.pa.allCoords, dv.pa.lineWidthPix, dv.pa.fixCrossColor,  [dv.pa.xCenter, dv.pa.yCenter], 2)
+ end
  
- % FLIP ( or should we be doing their weird datapixx stuff???)
+ % FLIP
  vbl = Screen('Flip', dv.disp.ptr, vbl + 0.5*ifi);
  
- %[ig ig flipTimes(dv.trial.iFrame,1) flipTimes(dv.trial.iFrame,2)] = Screen('Flip', dv.disp.ptr); % use this?  
-
  %-------------------------------------------------------------------------%
     loopTimes(dv.trial.iLoop, :) = [dv.trial.ttime dv.trial.state];
     dv.trial.iLoop = dv.trial.iLoop + 1;
@@ -299,7 +301,7 @@ if dv.pass == 0
     PDS.eyepos{dv.j}         = eyepos(1:dv.trial.iSample+1,:);  % remove extra    
 end
 
-fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
+%fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
 
 % SAVE pairings per trial and correct and foil object locations
 PDS.data.pairs{dv.j} = dv.pairOrder(dv.j,:);   % is this stuff right?
@@ -325,9 +327,11 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
     function dv = turnOnFixationPoint(dv)
         % BEFORE FIXATION DOT
         if  dv.trial.state == dv.states.START && dv.trial.ttime  > dv.trial.preTrial
-            dv.trial.colorFixDot  = dv.disp.clut.targetgood;
-            dv.trial.colorFixWindow = dv.disp.clut.bg;
+%             dv.trial.colorFixDot  = dv.disp.clut.red;
+%             dv.trial.colorFixWindow = dv.disp.clut.bg;
             
+            dv.trial.fixFlagOn = 1;
+
             %%% TURN ON FIXATION DOT %%%
             pdsDatapixxFlipBit(dv.events.FIXATION) % fp1 ON
             dv.trial.timeFpOn = GetSecs - dv.trial.trstart;   % time state was entered
@@ -346,9 +350,12 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         dv.trial.fpWin = dv.pa.fpWin*dv.disp.ppd/2;
         % WAITING FOR SUBJECT FIXATION (fp1)
         if  dv.trial.state == dv.states.FPON
+            
+            dv.trial.fixFlagOn = 1;
+            
             if dv.trial.ttime  < (dv.trial.preTrial+dv.trial.fpWait) && fixationHeld(dv)
-                dv.trial.colorFixDot = dv.disp.clut.targetnull;
-                dv.trial.colorFixWindow = dv.disp.clut.window;
+%                 dv.trial.colorFixDot = dv.disp.clut.targetnull;
+%                 dv.trial.colorFixWindow = dv.disp.clut.window;
                 dv.trial.timeFpEntered = GetSecs - dv.trial.trstart;
                 pdsDatapixxFlipBit(dv.events.FIXATION)
                 dv.trial.state = dv.states.FPHOLD;
@@ -368,16 +375,22 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         dv.trial.fpWin = dv.pa.fpWin*dv.disp.ppd;
         % check if fixation is held
         if dv.trial.state == dv.states.FPHOLD
-            if dv.trial.ttime > dv.trial.timeFpEntered && fixationHeld(dv) % was fixPtOffset + timeFpEntered but I don't think that applies to mine
-                dv.trial.colorFixDot    = dv.disp.clut.bg;
-                dv.trial.colorFixWindow = dv.disp.clut.bg;
+            
+            dv.trial.fixFlagOn = 1;
+            
+            if dv.trial.ttime > dv.trial.timeFpEntered + dv.trial.fixPtOffset && fixationHeld(dv)
+%                 dv.trial.colorFixDot    = dv.disp.clut.bg;
+%                 dv.trial.colorFixWindow = dv.disp.clut.bg;
+                dv.trial.fixFlagOn = 0;
+                
                 pdsDatapixxFlipBit(dv.events.FIXATION) % fixation cross
                 dv.trial.ttime      = GetSecs - dv.trial.trstart;
                 dv.trial.timeFpOff  = dv.trial.ttime;
                 dv.trial.state      = dv.states.SHOWCUE;  % switching state to show cue (scene)
             elseif dv.trial.ttime < dv.trial.timeFpEntered && ~fixationHeld(dv)
-                dv.trial.colorFixDot    = dv.disp.clut.bg;
-                dv.trial.colorFixWindow = dv.disp.clut.bg;
+%                 dv.trial.colorFixDot    = dv.disp.clut.bg;
+%                 dv.trial.colorFixWindow = dv.disp.clut.bg;
+                dv.trial.fixFlagOn = 0;
                 pdsDatapixxFlipBit(dv.events.BREAKFIX)
                 dv.trial.timeBreakFix = GetSecs - dv.trial.trstart;
                 dv.trial.state = dv.states.BREAKFIX;
@@ -393,9 +406,11 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.TRIALCOMPLETE
 %             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
 %             dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
-            dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
+%             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
 %             dv.trial.colorTarget1Window = dv.disp.clut.bg;
 %             dv.trial.colorTarget2Window = dv.disp.clut.bg;
+            dv.trial.fixFlagOn = 0; %probably not needed?
+            
             dv.trial.good = 1;
             if dv.pa.freeOn == 0
                 if dv.trial.targ1Chosen == dv.trial.targ1Correct
@@ -441,18 +456,21 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %---------------------------------------------------------------------%
     function dv = breakFixation(dv)
         if dv.trial.state == dv.states.BREAKFIX
+            
+            dv.trial.fixFlagOn = 0;
             % turn off stimulus
-            dv.trial.colorFixDot        = dv.disp.clut.bg;            % fixation point 1 color
-            dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
-            dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
-            dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
-            dv.trial.colorTarget1Window = dv.disp.clut.bg;
-            dv.trial.colorTarget2Window = dv.disp.clut.bg;
-            dv.trial.Gpars(4,:) = 0; % set gabors to on contrast
-            dv.trial.Mpars(4,:) = 0; % set gabors to on contrast
-            dv.trial.good = 0;
-            dv.trial.flagMotionOn = 2;
-            dv.trial.targOn = 2;
+%             dv.trial.colorFixDot        = dv.disp.clut.bg;            % fixation point 1 color
+%             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
+%             dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
+%             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
+%             dv.trial.colorTarget1Window = dv.disp.clut.bg;
+%             dv.trial.colorTarget2Window = dv.disp.clut.bg;
+%             dv.trial.Gpars(4,:) = 0; % set gabors to on contrast
+%             dv.trial.Mpars(4,:) = 0; % set gabors to on contrast
+%             dv.trial.good = 0;
+%             dv.trial.flagMotionOn = 2;
+%             dv.trial.targOn = 2;
+
             audiohandle = dv.pa.sound.breakfix;
             if dv.trial.flagBuzzer
                 PsychPortAudio('Start', audiohandle, 1, [], [], GetSecs + .1);
@@ -543,20 +561,15 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %---------------------------------------------------------------------%
     function dv = showCue(dv)
         % shows Scene Cue in both study and test trials
-        
         if dv.trial.state == dv.states.SHOWCUE 
+            
+            dv.trial.fixFlagOn = 0;
             
             if dv.trial.showCueFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
             dv.trial.timeShowCueStart = dv.trial.ttime;
             dv.trial.showCueFlag = 0;
             end
-%             % using internal timers for each state to facilitate modularity
-%             % and future changes (might not be the best choice
-%             if dv.trial.showCueTime == 0 % reset timer first time through
-%                 dv.trial.showCueTime = 0;
-%             end
-%             dv.trial.showCueTime = GetSecs - dv.trial.showCueTime;
             
             %%%%%% Scene Alone (1s default)
             Screen('DrawTexture',dv.disp.ptr,dv.trial.sceneImageTexture); % Draw Texture (same texture variable for both trial types?)
@@ -581,16 +594,13 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.SHOWPAIR 
             % Just for study trials
             
+            dv.trial.fixFlagOn = 0;
+            
             if dv.trial.showPairFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
             dv.trial.timeShowPairStart = dv.trial.ttime;
             dv.trial.showPairFlag = 0;
             end
-%             
-%             if dv.trial.showPairTime == 0 % reset timer first time through
-%                 dv.trial.showPairTime = 0; 
-%             end
-%             dv.trial.showPairTime = GetSecs - dv.trial.showPairTime;
             
             %%%%%% Scene and Object (2s default)
             % Scene
@@ -613,6 +623,8 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
     function dv = delay(dv)
         if dv.trial.state == dv.states.DELAY
             
+            dv.trial.fixFlagOn = 0; % turn on delay box instead
+            
             if dv.trial.delayFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
             dv.trial.timeDelayStart = dv.trial.ttime;
@@ -623,14 +635,12 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 
                 if dv.trial.ttime <= dv.trial.timeDelayStart + dv.pa.delayTime
                     %%%% Delay (5s default)
-                    Screen('FillRect', dv.disp.ptr, dv.pa.centeredDelayRect); % what to do about color here?
+                    Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect); 
                     
-                elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart % briefly represent fixation pt to cue onset of memory probe
+                elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime   % briefly represent fixation pt to cue onset of memory probe
+                    dv.trial.fixFlagOn = 1;
                     
-                    %%% TURN ON FIXATION DOT %%% - does this work??????????? is this because of weird drawing all the time as bg color
-                    pdsDatapixxFlipBit(dv.events.FIXATION) % fp1 ON
-                    
-                elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime
+                elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime
                     dv.trial.state = dv.states.SHOWPROBE;
                 end
                 
@@ -645,6 +655,8 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
     function dv = showProbe(dv)
         if dv.trial.state == dv.states.SHOWPROBE
             % just for test trials
+            
+            dv.trial.fixFlagOn = 0;
             
             if dv.trial.showProbeFlag
                 dv.trial.ttime = GetSecs - dv.trial.trstart;

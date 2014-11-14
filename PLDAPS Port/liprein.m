@@ -10,6 +10,8 @@ dv.finish = 1e3; % # of trials
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; also i am currently overwriting some dv.pa and dv.states below which could be cleaned up and customized
 
+Datapixx('Open') % HACK: Must reopen datapixx beacause I'm not using overlay so I can get colors
+
 dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need????
 
 % Options
@@ -31,10 +33,10 @@ end
 %% Parameters - dv.pa
 
 % Stimulus Size and Location (dv.disp - display parameters)
-dv.pa.objectSize = .25; % in percent of baseRect, better way to do this? 
+dv.pa.objectSize = .3; % in percent of baseRect, better way to do this? 
 
 %%%%% Test Trial Stimulus Location and Geometry Parameters
-dv.pa.alpha = 6; % degrees of visual angle
+dv.pa.alpha = 15; % degrees of visual angle
 [dv.pa.Dx, dv.pa.Dy] = calcVisAngDS(dv.pa.alpha, dv.disp.viewdist, dv.disp.widthcm, dv.disp.heightcm, dv.disp.winRect(3), dv.disp.winRect(4)); % Func to calculate visual angle
 
 % Get the center coordinate of the window
@@ -43,6 +45,7 @@ dv.pa.alpha = 6; % degrees of visual angle
 % Make Delay box
 delayRect = [0 0 50 50];
 dv.pa.centeredDelayRect = CenterRectOnPointd(delayRect, dv.pa.xCenter, dv.pa.yCenter);
+dv.pa.delayBoxColor = [0, 0, 0]; % delay box color
 
 %% Time & Space
 
@@ -62,10 +65,26 @@ dv.pa.breakFixPenalty = 2;
 dv.pa.jitterSize = .5;
 
 % fixation
-dv.pa.preTrial = .5;       
+dv.pa.preTrial = .5;  
+dv.pa.fixPtOffset = 1;
 dv.pa.fixWait = 4;        
-dv.pa.fixHold = 1;
+dv.pa.fixHold = 3; % 1
 dv.pa.fixationXY = [0 0]; % degrees
+
+%fixation cross
+% Setup the text type for the window - surprised I can call screen here
+% already
+Screen('TextFont', dv.disp.ptr, 'Ariel');
+Screen('TextSize', dv.disp.ptr, 36);
+
+% Set the size of the arms of our fixation cross
+dv.pa.fixCrossDimPix = 40;
+xCoords = [-dv.pa.fixCrossDimPix dv.pa.fixCrossDimPix 0 0]; % Set the coordinates (these are all relative to zero we will let the drawing routine center the cross in the center of our monitor for us)
+yCoords = [0 0 -dv.pa.fixCrossDimPix dv.pa.fixCrossDimPix];
+dv.pa.allCoords = [xCoords; yCoords];
+dv.pa.lineWidthPix = 4; % line width for our fixation cross
+dv.pa.fixCrossColor = [0, 0, 0]; % Fixation cross color
+
 
 % window sizes 
 dv.pa.fpWin = [1.5 1.5]; % x,y radius
