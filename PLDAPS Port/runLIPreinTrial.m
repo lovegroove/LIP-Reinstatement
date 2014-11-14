@@ -481,6 +481,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 if dv.trial.breakRestart
                     dv.trial.state = dv.states.START; % option to restart trial to fix below, and probably cause other issues***
                     dv.trial.nBreaks = dv.trial.nBreaks + 1;
+                    dv.trial.trstart = GetSecs; % restart trial timer
                 else
                 dv.trial.flagNextTrial = true; % currently breaking fixation increments the trial so you would miss the presentation of certain pairs in my paradigm
                 end
@@ -631,18 +632,21 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             dv.trial.delayFlag = 0;
             end
             
-            if fixationHeld(dv) || dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart % need a grace time for them to look back at the center! (does this work alright?)
+            %**************** maybe wait for refixation step first then
+            %holding or maybe have it run until it's greater than
+            if dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart % need a grace time for them to look back at the center! (does this work alright?)
                 
-                if dv.trial.ttime <= dv.trial.timeDelayStart + dv.pa.delayTime
-                    %%%% Delay (5s default)
-                    Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect); 
-                    
-                elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime   % briefly represent fixation pt to cue onset of memory probe
-                    dv.trial.fixFlagOn = 1;
-                    
-                elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime
-                    dv.trial.state = dv.states.SHOWPROBE;
-                end
+                Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
+                
+            elseif dv.trial.ttime <= dv.trial.timeDelayStart + dv.pa.delayTime && fixationHeld(dv) && dv.trial.ttime > dv.trial.graceTime + dv.trial.timeDelayStart
+                %%%% Delay (5s default)
+                Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
+                
+            elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime && fixationHeld(dv)  % briefly represent fixation pt to cue onset of memory probe
+                dv.trial.fixFlagOn = 1;
+                
+            elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime && fixationHeld(dv)
+                dv.trial.state = dv.states.SHOWPROBE;
                 
             else
                 dv.trial.state = dv.states.BREAKFIX;
