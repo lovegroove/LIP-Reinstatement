@@ -43,7 +43,8 @@ dv.trial.nBreaks = 0; % Initialize
 
 % Set flags
 dv.trial.fixFlagOn = 0;
-dv.trial.virgin = 1; % load images/make textures the first time through each trial
+dv.trial.delayRectOn = 0;
+dv.trial.virgin = 1; % boolean, load images/make textures the first time through each trial
 dv.trial.showCueFlag = 1;
 dv.trial.showPairFlag = 1;
 dv.trial.delayFlag = 1;
@@ -618,8 +619,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         end %end if trial state
     end % end func
 
- % DELAY - this is going to be a pain in the ass to deal with breaking
- % fixation etc.!!!!!!!!!!!!!!!!!! and what about brief fix pt cue after?
+ % DELAY 
  %---------------------------------------------------------------------%
     function dv = delay(dv)
         if dv.trial.state == dv.states.DELAY
@@ -627,25 +627,30 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             dv.trial.fixFlagOn = 0; % turn on delay box instead
             
             if dv.trial.delayFlag
-            dv.trial.ttime = GetSecs - dv.trial.trstart;
-            dv.trial.timeDelayStart = dv.trial.ttime;
-            dv.trial.delayFlag = 0;
+                dv.trial.ttime = GetSecs - dv.trial.trstart;
+                dv.trial.timeDelayStart = dv.trial.ttime;
+                dv.trial.delayFlag = 0;
             end
             
-            %**************** maybe wait for refixation step first then
-            %holding or maybe have it run until it's greater than
-            if dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart % need a grace time for them to look back at the center! (does this work alright?)
-                
+            if dv.trial.delayRectOn
                 Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
+            end
+            
+            % need a grace time for them to look back at the center
+            if dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart
+                dv.trial.delayRectOn = 1;
                 
-            elseif dv.trial.ttime <= dv.trial.timeDelayStart + dv.pa.delayTime && fixationHeld(dv) && dv.trial.ttime > dv.trial.graceTime + dv.trial.timeDelayStart
-                %%%% Delay (5s default)
-                Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
+            elseif dv.trial.ttime > dv.trial.timeDelayStart + dv.trial.graceTime && fixationHeld(dv)
+                %%%% Delay (4.5s default)
+                dv.trial.delayRectOn = 1; % redundant
                 
-            elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime && fixationHeld(dv)  % briefly represent fixation pt to cue onset of memory probe
+                % briefly represent fixation pt to cue onset of memory
+                % probe (.5s)
+            elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime && fixationHeld(dv)
                 dv.trial.fixFlagOn = 1;
+                dv.trial.delayRectOn = 0;
                 
-            elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime && fixationHeld(dv)
+            elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime && fixationHeld(dv)
                 dv.trial.state = dv.states.SHOWPROBE;
                 
             else
