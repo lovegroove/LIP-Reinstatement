@@ -640,13 +640,13 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             if dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart
                 dv.trial.delayRectOn = 1;
                 
-            elseif dv.trial.ttime > dv.trial.timeDelayStart + dv.trial.graceTime && fixationHeld(dv)
+            elseif dv.trial.ttime < dv.trial.timeDelayStart + dv.trial.graceTime + dv.pa.delayTime && fixationHeld(dv)  % && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime
                 %%%% Delay (4.5s default)
-                dv.trial.delayRectOn = 1; % redundant
+                dv.trial.delayRectOn = 1; % redundant (already set by this point)
                 
                 % briefly represent fixation pt to cue onset of memory
                 % probe (.5s)
-            elseif dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime && fixationHeld(dv)
+            elseif dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime + dv.pa.probeCueTime && fixationHeld(dv)
                 dv.trial.fixFlagOn = 1;
                 dv.trial.delayRectOn = 0;
                 
