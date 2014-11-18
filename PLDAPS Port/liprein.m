@@ -14,9 +14,10 @@ Datapixx('Open') % HACK: Must reopen datapixx beacause I'm not using overlay so 
 
 dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need????
 
-% Options
-dv.pass = 1; % ignore eyetracker by flagging fixationHeld as always true
-dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
+% Options - both of these must be flagged if you want to skip eyetracker
+% and have it run right
+dv.pass = 0; % ignore eyetracker by flagging fixationHeld as always true
+dv.useMouse = 0; % sets cursor to eyes via pdsGetEyePosition func
 
 
 % don't forget to CHANGE FILE PATHS

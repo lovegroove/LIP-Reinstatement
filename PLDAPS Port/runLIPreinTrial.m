@@ -410,6 +410,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
 %             dv.trial.colorTarget1Window = dv.disp.clut.bg;
 %             dv.trial.colorTarget2Window = dv.disp.clut.bg;
+            
             dv.trial.fixFlagOn = 0; %probably not needed?
             
             dv.trial.good = 1;
@@ -653,8 +654,10 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime && fixationHeld(dv)
                 dv.trial.state = dv.states.SHOWPROBE;
                 
-            else
-                dv.trial.state = dv.states.BREAKFIX;
+            elseif ~fixationHeld(dv) && dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime
+                dv.trial.state = dv.states.BREAKFIX; % braking is not working right here, it makes it to that state though, weird!!!
+%             else
+%                 dv.trial.state = dv.states.BREAKFIX; %???
             end
         end
     end
