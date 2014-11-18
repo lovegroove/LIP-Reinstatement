@@ -18,7 +18,7 @@ dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 % and have it run right
 dv.pass = 0; % ignore eyetracker by flagging fixationHeld as always true
 dv.useMouse = 0; % sets cursor to eyes via pdsGetEyePosition func
-
+dv.showMouse = 0;
 
 % don't forget to CHANGE FILE PATHS
 % Load images function - *******************right now, this is setup to call new pairings every time you run the experiment, so you have to be careful comparing study and test, because you might overwrite it with a new order
