@@ -10,11 +10,7 @@ dv = defaultTrialVariables(dv); % setup default trial struct (need this?)
 
 %% Preallocation 
 %-------------------------------------------------------------------------%
-PDS.data.pairs = cell(dv.finish,4); % For saving correct objects and their placement
-PDS.data.objectLocs = cell(dv.finish,1);
-PDS.breakRestart = cell(dv.finish,1);
-PDS.nBreaks = cell(dv.finish,1);
-dv.trial.objectLocs = {}; % not sure of dimensions right now
+%dv.trial.objectLocs = {}; % not sure of dimensions right now
 
 % preallocate data aquisition variables
 flipTimes       = zeros(1e4,2);
@@ -191,7 +187,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     
     if dv.pass == 0
         
-        % Update Measurements - need this?????
+        % Update Measurements
         %---------------------------------------------------------------------%
         dv.trial.ttime = GetSecs - dv.trial.trstart;
         % update eye position (fast)
@@ -236,9 +232,14 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
  %---------------------------------------------------------------------%
 
  if dv.trial.fixFlagOn
- Screen('DrawLines', dv.disp.ptr, dv.pa.allCoords, dv.pa.lineWidthPix, dv.pa.fixCrossColor,  [dv.pa.xCenter, dv.pa.yCenter], 2)
+     Screen('DrawLines', dv.disp.ptr, dv.pa.allCoords, dv.pa.lineWidthPix, dv.pa.fixCrossColor,  [dv.pa.xCenter, dv.pa.yCenter], 2)
  end
  
+ % Show Mouse pointer if desired 
+ if dv.showMouse
+     Screen('DrawDots', dv.disp.ptr, [dv.trial.cursorX,dv.trial.cursorY], 10, [1,1,1], [], 2);
+ end
+    
  % FLIP
  vbl = Screen('Flip', dv.disp.ptr, vbl + 0.5*ifi);
  
@@ -278,6 +279,26 @@ PDS.timing.fpoff(dv.j,:)     = [dv.trial.timeFpOff     dv.trial.frameFpOff];
 PDS.timing.reward{dv.j}      = dv.trial.timeReward(~isnan(dv.trial.timeReward));
 
 PDS.timing.breakfix(dv.j)    = dv.trial.timeBreakFix;
+
+
+%Timing states of interest
+if PDS.goodtrial(dv.j) == 1
+    PDS.timing.timeShowCueStart{dv.j} = dv.trial.timeShowCueStart;
+    if strcmp(dv.trialType, 'study')
+        PDS.timing.timeShowPairStart{dv.j} = dv.trial.timeShowPairStart;
+    elseif strcmp(dv.trialType, 'test')
+        PDS.timing.timeDelayStart{dv.j} = dv.trial.timeDelayStart;
+        PDS.timing.timeShowProbeStart{dv.j} = dv.trial.timeShowProbeStart;
+    end
+else
+    PDS.timing.timeShowCueStart{dv.j} = 0;
+    if strcmp(dv.trialType, 'study')
+        PDS.timing.timeShowPairStart{dv.j} = 0;
+    elseif strcmp(dv.trialType, 'test')
+        PDS.timing.timeDelayStart{dv.j} = 0;
+        PDS.timing.timeShowProbeStart{dv.j} = 0;
+    end
+end
 
 % system timing
 PDS.timing.photodiodeFlips{dv.j} = photodiodeTimes(1:dv.trial.iPhotodiode -1,:);
@@ -410,6 +431,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
 %             dv.trial.colorTarget1Window = dv.disp.clut.bg;
 %             dv.trial.colorTarget2Window = dv.disp.clut.bg;
+            
             dv.trial.fixFlagOn = 0; %probably not needed?
             
             dv.trial.good = 1;
@@ -460,18 +482,18 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             
             dv.trial.fixFlagOn = 0;
             % turn off stimulus
-%             dv.trial.colorFixDot        = dv.disp.clut.bg;            % fixation point 1 color
-%             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
-%             dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
-%             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
-%             dv.trial.colorTarget1Window = dv.disp.clut.bg;
-%             dv.trial.colorTarget2Window = dv.disp.clut.bg;
-%             dv.trial.Gpars(4,:) = 0; % set gabors to on contrast
-%             dv.trial.Mpars(4,:) = 0; % set gabors to on contrast
-%             dv.trial.good = 0;
-%             dv.trial.flagMotionOn = 2;
-%             dv.trial.targOn = 2;
-
+            %             dv.trial.colorFixDot        = dv.disp.clut.bg;            % fixation point 1 color
+            %             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
+            %             dv.trial.colorTarget2Dot    = dv.disp.clut.bg;            % target color
+            %             dv.trial.colorFixWindow     = dv.disp.clut.bg;           % fixation window color
+            %             dv.trial.colorTarget1Window = dv.disp.clut.bg;
+            %             dv.trial.colorTarget2Window = dv.disp.clut.bg;
+            %             dv.trial.Gpars(4,:) = 0; % set gabors to on contrast
+            %             dv.trial.Mpars(4,:) = 0; % set gabors to on contrast
+            %             dv.trial.good = 0;
+            %             dv.trial.flagMotionOn = 2;
+            %             dv.trial.targOn = 2;
+            
             audiohandle = dv.pa.sound.breakfix;
             if dv.trial.flagBuzzer
                 PsychPortAudio('Start', audiohandle, 1, [], [], GetSecs + .1);
@@ -484,7 +506,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                     dv.trial.nBreaks = dv.trial.nBreaks + 1;
                     dv.trial.trstart = GetSecs; % restart trial timer
                 else
-                dv.trial.flagNextTrial = true; % currently breaking fixation increments the trial so you would miss the presentation of certain pairs in my paradigm
+                    dv.trial.flagNextTrial = true; % currently breaking fixation increments the trial so you would miss the presentation of certain pairs in my paradigm
                 end
                 
             end
@@ -653,8 +675,9 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime && fixationHeld(dv)
                 dv.trial.state = dv.states.SHOWPROBE;
                 
-            else
-                dv.trial.state = dv.states.BREAKFIX;
+            elseif ~fixationHeld(dv) && dv.trial.ttime > dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime
+                dv.trial.timeBreakFix = GetSecs - dv.trial.trstart; % always have to mark the time of break fixation
+                dv.trial.state = dv.states.BREAKFIX; 
             end
         end
     end
