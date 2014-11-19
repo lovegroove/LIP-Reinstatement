@@ -1,16 +1,17 @@
 function [PDS,dv] = runLIPreinTrial(PDS,dv)
-% This function is a single trial, trials are interated through the wrapper function runPLDAPS
+% This function is a single trial, trials are interated through the wrapper
+% function runPLDAPScv (cv = color version)
 % PDS is a struct containing your data
-% dv is a struct containing your parameters (initialized in another function called lipreinstatement) and does not change
+% dv is a struct containing your parameters (initialized in another function called liprein) and does not change
 % dv.trial can be updated per trial to change paramters on each trial
 
 
-dv = defaultTrialVariables(dv); % setup default trial struct (need this?)
+dv = defaultTrialVariables(dv); % setup default trial struct
 
 
 %% Preallocation 
 %-------------------------------------------------------------------------%
-%dv.trial.objectLocs = {}; % not sure of dimensions right now
+dv.trial.objectLocs = {}; % not sure of dimensions right now
 
 % preallocate data aquisition variables
 flipTimes       = zeros(1e4,2);
@@ -34,6 +35,7 @@ dv.trial.graceTime = dv.pa.graceTime; % in case we want to add jitter
 %-------------------------------------------------------------------------%
 %Trial Parameters
 
+% Special Break fixation Options so we don't "miss" pairs being presented
 dv.trial.breakRestart = 0; % (binary option) Restart trial when fixation is broken rather than go to next trail, so we don't miss pairings
 dv.trial.nBreaks = 0; % Initialize
 
@@ -47,12 +49,12 @@ dv.trial.delayFlag = 1;
 dv.trial.showProbeFlag = 1;
 
 %-------------------------------------------------------------------------%
-% Stimulus (object) angle and distance from center (fixation pt)**********
+% Stimulus (object) angle and distance from center (fixation pt), foil
+% object placed 180 deg. from correct object
 dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func (can randomize this per trial if desired)
 dv = stimLoc(dv);
 
 %-------------------------------------------------------------------------%
-%************************************ need this stuff????****************
 %%% Degrees to pixels %%%
 % We input positions on the screen in degrees of visual angle, but
 % PsychToolbox takes calls to pixel locations. dv.disp.ppd is the pixels
@@ -129,7 +131,7 @@ dv.trial.ttime  = GetSecs - dv.trial.trstart;
 PDS.timing.syncTimeDuration(dv.j) = dv.trial.ttime;
 
 
-% % Query the frame duration - MY EDITION (needed? what about datapixx?)
+% % Query the frame duration - needed?
 % *****************
 ifi = Screen('GetFlipInterval', dv.disp.ptr);
 vbl = Screen('Flip', dv.disp.ptr); %Initially synchronize with retrace, take base time in vbl
@@ -230,7 +232,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
 
     %% DRAWING
  %---------------------------------------------------------------------%
-
+ % Show fixation point if desired 
  if dv.trial.fixFlagOn
      Screen('DrawLines', dv.disp.ptr, dv.pa.allCoords, dv.pa.lineWidthPix, dv.pa.fixCrossColor,  [dv.pa.xCenter, dv.pa.yCenter], 2)
  end
@@ -249,7 +251,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     
 end % END WHILE LOOP
 
-Screen('Close'); % was necessary in prototype version because of drawing all the textures
+Screen('Close'); % was necessary in prototype version because of drawing all the textures, need to close offscreen windows
 
 PDS.timing.datapixxstoptime(dv.j) = Datapixx('GetTime');
 PDS.timing.trialend(dv.j) = GetSecs- dv.trial.trstart;
@@ -281,20 +283,24 @@ PDS.timing.reward{dv.j}      = dv.trial.timeReward(~isnan(dv.trial.timeReward));
 PDS.timing.breakfix(dv.j)    = dv.trial.timeBreakFix;
 
 
-%Timing states of interest
+% Saving timing states of interest and trial type for each trial
 if PDS.goodtrial(dv.j) == 1
     PDS.timing.timeShowCueStart{dv.j} = dv.trial.timeShowCueStart;
     if strcmp(dv.trialType, 'study')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeShowPairStart{dv.j} = dv.trial.timeShowPairStart;
     elseif strcmp(dv.trialType, 'test')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeDelayStart{dv.j} = dv.trial.timeDelayStart;
         PDS.timing.timeShowProbeStart{dv.j} = dv.trial.timeShowProbeStart;
     end
 else
     PDS.timing.timeShowCueStart{dv.j} = 0;
     if strcmp(dv.trialType, 'study')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeShowPairStart{dv.j} = 0;
     elseif strcmp(dv.trialType, 'test')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeDelayStart{dv.j} = 0;
         PDS.timing.timeShowProbeStart{dv.j} = 0;
     end
@@ -326,12 +332,24 @@ end
 %fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
 
 % SAVE pairings per trial and correct and foil object locations
-PDS.data.pairs{dv.j} = dv.pairOrder(dv.j,:);   % is this stuff right?
+PDS.data.pairs{dv.j} = dv.pairOrder(dv.j,:);  
 PDS.data.objectLocs{dv.j} = dv.trial.objectLocs; 
 
 PDS.breakRestart{dv.j} = dv.trial.breakRestart;
 PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 
+
+% For a Single Session
+if dv.singleSession && dv.j == 40 && strcmp(dv.trialType,'study') %current number of pairs in a block, make this a variable later
+    disp('Study Session finished. Test time!')
+    dv.quit = 1;
+    ShowCursor
+    
+elseif dv.singleSession && dv.j == 80 && strcmp(dv.trialType,'test')
+    disp('Test Session finished. Thank you!')
+    dv.quit = 1;
+    ShowCursor
+end
 
 %-------------------------------------------------------------------------%
 %%% INLINE FUNCTIONS

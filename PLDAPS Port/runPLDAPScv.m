@@ -1,4 +1,4 @@
-function [PDS,dv] = runPLDAPS(subj, condition, newsession)
+function [PDS,dv] = runPLDAPScv(subj, condition, newsession)
 % [PDS, dv] = runPLDAPS(subject, condition, [newsession = 1])
 % PLDAPS (Plexon Datapixx PsychToolbox) version 3
 %       runPLDAPS is a wrapper for calling PLDAPS condition files
@@ -23,7 +23,7 @@ function [PDS,dv] = runPLDAPS(subj, condition, newsession)
 % For more info visit:
 % https://github.com/Psychtoolbox-3/Psychtoolbox-3
 
-% ELH version - small hack so I can use colors
+% ELH version - small hack so I can use colors, and other such things
 
 PDS = []; 
 dv  = [];
@@ -134,9 +134,11 @@ try
     
     
     dv.pref.sfile = sfile; 
+    dv.newsession = opts.newsession; % (ELH) passing on, for image loading purposes
+    
     %% Open PLDAPS windows
     % Open PsychToolbox Screen
-    dv.disp.useOverlay = 0; % HACK: Have to turn off overlay so I can get colors
+    dv.disp.useOverlay = 0; % (ELH) HACK: Have to turn off overlay so I can get colors, and then reopen datapixx in condition file
     dv.disp = pdsOpenScreen(dv.disp);
     
     % Setup PLDAPS experiment condition

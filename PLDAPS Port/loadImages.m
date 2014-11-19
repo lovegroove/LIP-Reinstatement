@@ -1,8 +1,5 @@
 function dv = loadImages(dv)
-% [sceneOrder, objectOrder, objectPath, scenePath, objectFormat, sceneFormat, objectImages_mask, sceneImages_mask, objectImages, sceneImages] = loadImagesFunc
-
 % dv.filePaths is now set in liprein (the condition file)
-%dv.filePaths = 'shopRig'; % testingStim, conservativeStim, or naturalisticStim, for shapes - bow or wob
 
 switch dv.filePaths
     case 'testingStim'
@@ -68,6 +65,16 @@ for i = 1:length(dv.pairOrder)
     dv.pairOrder{i,3} = objectImages_mask(i);
     dv.pairOrder{i,4} = sceneImages_mask(i);
 end
+
+% Proliferate pairings for many trials - 40 is the current size of a
+% stimulus set: 8 shapes, each paired with 5 scenes
+for i = 1:dv.finish / 40 
+    dv.pairOrder = [dv.pairOrder; datasample(dv.pairOrder,40,1,'replace',false)];  %should we overwrite dv.pairOrder or no?
+end
+
+% Attach Session ID
+sessionID = repmat(cellstr(dv.pref.sfile), dv.finish+40, 1);
+dv.pairOrder = horzcat(dv.pairOrder, sessionID);
 
 end
 
