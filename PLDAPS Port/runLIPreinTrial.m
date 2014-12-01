@@ -41,6 +41,7 @@ dv.trial.nBreaks = 0; % Initialize
 
 % Set flags
 dv.trial.fixFlagOn = 0;
+dv.trial.fixDotOn = 0;
 dv.trial.delayRectOn = 0;
 dv.trial.virgin = 1; % boolean, load images/make textures the first time through each trial
 dv.trial.showCueFlag = 1;
@@ -232,9 +233,14 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
 
     %% DRAWING
  %---------------------------------------------------------------------%
- % Show fixation point if desired 
+ % Show fixation cross if desired 
  if dv.trial.fixFlagOn
      Screen('DrawLines', dv.disp.ptr, dv.pa.allCoords, dv.pa.lineWidthPix, dv.pa.fixCrossColor,  [dv.pa.xCenter, dv.pa.yCenter], 2)
+ end
+ 
+ % Show red dot on fixation cross
+ if dv.trial.fixDotOn
+     Screen('DrawDots', dv.disp.ptr, [dv.pa.xCenter, dv.pa.yCenter], 10, [1,0,0], [], 2)
  end
  
  % Show Mouse pointer if desired 
@@ -371,6 +377,7 @@ end
 %             dv.trial.colorFixWindow = dv.disp.clut.bg;
             
             dv.trial.fixFlagOn = 1;
+            dv.trial.fixDotOn = 1;
 
             %%% TURN ON FIXATION DOT %%%
             pdsDatapixxFlipBit(dv.events.FIXATION) % fp1 ON
@@ -392,6 +399,7 @@ end
         if  dv.trial.state == dv.states.FPON
             
             dv.trial.fixFlagOn = 1;
+            dv.trial.fixDotOn = 1;
             
             if dv.trial.ttime  < (dv.trial.preTrial+dv.trial.fpWait) && fixationHeld(dv)
 %                 dv.trial.colorFixDot = dv.disp.clut.targetnull;
@@ -417,11 +425,13 @@ end
         if dv.trial.state == dv.states.FPHOLD
             
             dv.trial.fixFlagOn = 1;
+            dv.trial.fixDotOn = 1;
             
             if dv.trial.ttime > dv.trial.timeFpEntered + dv.trial.fixPtOffset && fixationHeld(dv)
 %                 dv.trial.colorFixDot    = dv.disp.clut.bg;
 %                 dv.trial.colorFixWindow = dv.disp.clut.bg;
                 dv.trial.fixFlagOn = 0;
+                dv.trial.fixDotOn = 0;
                 
                 pdsDatapixxFlipBit(dv.events.FIXATION) % fixation cross
                 dv.trial.ttime      = GetSecs - dv.trial.trstart;
@@ -431,6 +441,7 @@ end
 %                 dv.trial.colorFixDot    = dv.disp.clut.bg;
 %                 dv.trial.colorFixWindow = dv.disp.clut.bg;
                 dv.trial.fixFlagOn = 0;
+                dv.trial.fixDotOn = 0;
                 pdsDatapixxFlipBit(dv.events.BREAKFIX)
                 dv.trial.timeBreakFix = GetSecs - dv.trial.trstart;
                 dv.trial.state = dv.states.BREAKFIX;
@@ -439,8 +450,7 @@ end
     end
     
     % TRIAL COMPLETE -- GIVE REWARD  -
-    % ********************************************** stuff in here we don't
-    % need/want???
+    % ********************************************** 
 %---------------------------------------------------------------------%
     function dv = trialComplete(dv)
         if dv.trial.state == dv.states.TRIALCOMPLETE
@@ -451,6 +461,7 @@ end
 %             dv.trial.colorTarget2Window = dv.disp.clut.bg;
             
             dv.trial.fixFlagOn = 0; %probably not needed?
+            dv.trial.fixDotOn = 0;
             
             dv.trial.good = 1;
             if dv.pa.freeOn == 0
@@ -499,6 +510,7 @@ end
         if dv.trial.state == dv.states.BREAKFIX
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             % turn off stimulus
             %             dv.trial.colorFixDot        = dv.disp.clut.bg;            % fixation point 1 color
             %             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
@@ -606,6 +618,7 @@ end
         if dv.trial.state == dv.states.SHOWCUE 
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             
             if dv.trial.showCueFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -637,6 +650,7 @@ end
             % Just for study trials
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             
             if dv.trial.showPairFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -664,7 +678,8 @@ end
     function dv = delay(dv)
         if dv.trial.state == dv.states.DELAY
             
-            dv.trial.fixFlagOn = 0; % turn on delay box instead
+            dv.trial.fixFlagOn = 1; 
+            dv.trial.fixDotOn = 1;
             
             if dv.trial.delayFlag
                 dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -672,23 +687,31 @@ end
                 dv.trial.delayFlag = 0;
             end
             
-            if dv.trial.delayRectOn
-                Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
-            end
+            % no longer using box
+%             if dv.trial.delayRectOn
+%                 Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
+%             end
             
             % need a grace time for them to look back at the center
             if dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart
-                dv.trial.delayRectOn = 1;
+                %dv.trial.delayRectOn = 1;
+                dv.trial.fixFlagOn = 1;
+                dv.trial.fixDotOn = 1;
                 
             elseif dv.trial.ttime < dv.trial.timeDelayStart + dv.trial.graceTime + dv.pa.delayTime && fixationHeld(dv)  % && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime
                 %%%% Delay (4.5s default)
-                dv.trial.delayRectOn = 1; % redundant (already set by this point)
+                %dv.trial.delayRectOn = 1; % redundant (already set by this point)
+                dv.trial.fixFlagOn = 1;
+                dv.trial.fixDotOn = 1;
                 
                 % briefly represent fixation pt to cue onset of memory
                 % probe (.5s)
             elseif dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime + dv.pa.probeCueTime && fixationHeld(dv)
+                
+                % Red dot off for visual cue
+                dv.trial.fixDotOn = 0;
                 dv.trial.fixFlagOn = 1;
-                dv.trial.delayRectOn = 0;
+                %dv.trial.delayRectOn = 0;
                 
             elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime && fixationHeld(dv)
                 dv.trial.state = dv.states.SHOWPROBE;
@@ -707,6 +730,7 @@ end
             % just for test trials
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             
             if dv.trial.showProbeFlag
                 dv.trial.ttime = GetSecs - dv.trial.trstart;

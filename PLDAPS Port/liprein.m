@@ -19,13 +19,17 @@ dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 %-------------------------------------------------------------------------%
 % Options - both of these must be flagged if you want to skip eyetracker
 % and have it run right
-dv.pass = 0; % ignore eyetracker by flagging fixationHeld as always true
+dv.pass = 1; % ignore eyetracker by flagging fixationHeld as always true
 
 dv.mouse = 1; % just toggle this
-if dv.mouse % this is dumb i know, just to quickly simplify 
-dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
-dv.showMouse = 1;
+if dv.mouse % this is dumb i know, just to quickly simplify
+    dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
+    dv.showMouse = 1;
+else
+    dv.useMouse = 0; % sets cursor to eyes via pdsGetEyePosition func
+    dv.showMouse = 0;
 end
+    
 %-------------------------------------------------------------------------%
 % Don't forget to CHANGE FILE PATHS on other rigs
 % Load images function - currently calls new pairs on every "new" session
@@ -40,16 +44,16 @@ end
 %% Parameters - dv.pa
 
 % Stimulus Size and Location (dv.disp - display parameters)
-dv.pa.objectSize = .3; % in percent of baseRect, sort of weird way 
+dv.pa.objectSize = .2; % in percent of baseRect, sort of weird way 
 
 %%%%% Test Trial Stimulus Location and Geometry Parameters
-dv.pa.alpha = 15; % degrees of visual angle
+dv.pa.alpha = 10; % degrees of visual angle
 [dv.pa.Dx, dv.pa.Dy] = calcVisAngDS(dv.pa.alpha, dv.disp.viewdist, dv.disp.widthcm, dv.disp.heightcm, dv.disp.winRect(3), dv.disp.winRect(4)); % Func to calculate visual angle
 
 % Get the center coordinate of the window
 [dv.pa.xCenter, dv.pa.yCenter] = RectCenter(dv.disp.winRect);
 
-% Make Delay box
+% Make Delay box (no longer using delay box)
 delayRect = [0 0 50 50];
 dv.pa.centeredDelayRect = CenterRectOnPointd(delayRect, dv.pa.xCenter, dv.pa.yCenter);
 dv.pa.delayBoxColor = [0, 0, 0]; % delay box color
@@ -59,8 +63,8 @@ dv.pa.delayBoxColor = [0, 0, 0]; % delay box color
 % Task Events - (was in ms, keep it that way?)
 dv.pa.sceneTime = 1;
 dv.pa.showPairTime = 2;
-dv.pa.probeCueTime = .5;
-dv.pa.delayTime = 4.5; % delay and probe cue time should add up to your desired total delay
+dv.pa.probeCueTime = .75;
+dv.pa.delayTime = 4.25; % delay and probe cue time should add up to your desired total delay
 dv.pa.probeTime = 2;
 dv.pa.graceTime = .5; % long enough?
 
