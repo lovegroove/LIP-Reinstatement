@@ -48,11 +48,15 @@ dv.trial.showCueFlag = 1;
 dv.trial.showPairFlag = 1;
 dv.trial.delayFlag = 1;
 dv.trial.showProbeFlag = 1;
-
+dv.trial.eyePosi = 0; %initialize counter
 %-------------------------------------------------------------------------%
 % Stimulus (object) angle and distance from center (fixation pt), foil
 % object placed 180 deg. from correct object
-dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func (can randomize this per trial if desired)
+
+%randomize each trial if desired
+dv.trial.theta = dv.pa.stimThetas(randi(length(dv.pa.stimThetas)));
+
+%dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func
 dv = stimLoc(dv);
 
 %-------------------------------------------------------------------------%
@@ -335,6 +339,11 @@ if dv.pass == 0
     PDS.eyepos{dv.j}         = eyepos(1:dv.trial.iSample+1,:);  % remove extra    
 end
 
+% Save quick eye measures
+if strcmp(dv.trialType, 'test')
+PDS.data.eyeLocProbe{dv.j} = dv.trial.eyeLoc;
+end
+
 %fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
 
 % SAVE pairings per trial and correct and foil object locations
@@ -343,7 +352,6 @@ PDS.data.objectLocs{dv.j} = dv.trial.objectLocs;
 
 PDS.breakRestart{dv.j} = dv.trial.breakRestart;
 PDS.nBreaks{dv.j} = dv.trial.nBreaks;
-
 
 % For a Single Session
 if dv.singleSession && dv.j == 40 && strcmp(dv.trialType,'study') %current number of pairs in a block, make this a variable later
@@ -361,7 +369,6 @@ end
 %%% INLINE FUNCTIONS
 %-------------------------------------------------------------------------%
     function held = fixationHeld(dv)
-        %         held = squarewindow(dv.pass,dv.disp.ctr(1:2)+dv.trial.fixXY-[dv.trial.eyeX dv.trial.eyeY],dv.trial.winW,dv.trial.winH);
         %         held = squarewindow(dv.pass,dv.disp.ctr(1:2)+dv.trial.fixXY-[dv.trial.eyeX dv.trial.eyeY],dv.trial.winW,dv.trial.winH);
         held = circlewindow(dv.pass,[dv.trial.eyeX dv.trial.eyeY]-(dv.trial.fixXY+dv.disp.ctr(1:2)),dv.trial.fpWin(1),dv.trial.fpWin(2));
     end
@@ -566,9 +573,8 @@ end
                 % Object - make texture and assign location
                 dv.trial.objectImage = imread(dv.trial.objectImageFile, dv.fileInfo.objectFormat); % Read in image
                 dv.trial.objectImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.objectImage); % Create Texture
-                [s1, s2, s3] = size(dv.trial.objectImage);
-                dv.trial.baseRect = [0 0 s1 s2];
-                dv.trial.destRect = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.pa.xCenter, dv.pa.yCenter); %Set size and location (find a better way to do size manipulations)
+                dv.trial.baseRect = [0 0 dv.disp.ppd .* dv.pa.objectSize dv.disp.ppd .* dv.pa.objectSize];
+                dv.trial.destRect = CenterRectOnPointd(dv.trial.baseRect, dv.pa.xCenter, dv.pa.yCenter); %Set size and location (find a better way to do size manipulations)
                 
             %---------------------------------------------------------------------%
                 % For TEST Trial Type
@@ -591,16 +597,14 @@ end
                 % Object 1 - make texture and assign location
                 dv.trial.object1Image = imread(dv.trial.object1, dv.fileInfo.objectFormat); % Read in image
                 dv.trial.object1ImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.object1Image); % Create Texture
-                [s1, s2, s3] = size(dv.trial.object1Image);
-                dv.trial.baseRect = [0 0 s1 s2];
-                dv.trial.destRect1 = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.trial.object1loc(1), dv.trial.object1loc(2)); %Set size and location
+                dv.trial.baseRect = [0 0 dv.disp.ppd .* dv.pa.objectSize dv.disp.ppd .* dv.pa.objectSize];
+                dv.trial.destRect1 = CenterRectOnPointd(dv.trial.baseRect, dv.trial.object1loc(1), dv.trial.object1loc(2)); %Set size and location
                 
                 % Object 2 - make texture and assign location
                 dv.trial.object2Image = imread(dv.trial.object2, dv.fileInfo.objectFormat); % Read in image
                 dv.trial.object2ImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.object2Image); % Create Texture
-                [s1, s2, s3] = size(dv.trial.object2Image);
-                dv.trial.baseRect = [0 0 s1 s2];
-                dv.trial.destRect2 = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.trial.object2loc(1), dv.trial.object2loc(2)); %Set size and location
+                dv.trial.baseRect = [0 0 dv.disp.ppd .* dv.pa.objectSize dv.disp.ppd .* dv.pa.objectSize];
+                dv.trial.destRect2 = CenterRectOnPointd(dv.trial.baseRect, dv.trial.object2loc(1), dv.trial.object2loc(2)); %Set size and location
                 
                 % Save correct object and location
                 dv.trial.objectLocs = {dv.trial.placedObjects{1}, dv.trial.placedObjects{2}; dv.trial.destRect1, dv.trial.destRect2};
@@ -753,6 +757,25 @@ end
                 dv.trial.timeComplete = dv.trial.ttime;
                 dv.trial.state = dv.states.TRIALCOMPLETE;
             end
+            
+            % Quick and dirty eye measures
+            dv.trial.eyePosi = dv.trial.eyePosi + 1;
+            if dv.trial.eyeX >= dv.trial.destRect1(1) && dv.trial.eyeX <= dv.trial.destRect1(3) && dv.trial.eyeY >= dv.trial.destRect1(2) && dv.trial.eyeY <= dv.trial.destRect1(4) 
+
+                % need to add in separate timer and easy first saccade
+                % metric (don't have to though can calcluate everything)
+%             dv.trial.timeRect1Start = GetSecs;
+%             dv.trial.cumTimeRect1 = GetSecs - dv.trial.timeRect1Start;
+%             
+            dv.trial.eyeLoc(dv.trial.eyePosi) = 1;
+            
+            elseif dv.trial.eyeX >= dv.trial.destRect2(1) && dv.trial.eyeX <= dv.trial.destRect2(3) && dv.trial.eyeY >= dv.trial.destRect2(2) && dv.trial.eyeY <= dv.trial.destRect2(4)
+            dv.trial.eyeLoc(dv.trial.eyePosi) = 2;
+            
+            else
+            dv.trial.eyeLoc(dv.trial.eyePosi) = 0;    
+            end
+            
         end
     end
 

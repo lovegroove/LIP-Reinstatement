@@ -14,14 +14,14 @@ dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for 
 
 Datapixx('Open') % HACK: Must reopen datapixx beacause I'm not using overlay so I can get colors
 
-dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need????
+dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 
 %-------------------------------------------------------------------------%
 % Options - both of these must be flagged if you want to skip eyetracker
-% and have it run right
-dv.pass = 1; % ignore eyetracker by flagging fixationHeld as always true
+% completely and have it run right
+dv.pass = 0; % ignore eyetracker by flagging fixationHeld as always true
 
-dv.mouse = 1; % just toggle this
+dv.mouse = 0; % just toggle this if you want to use the mouse
 if dv.mouse % this is dumb i know, just to quickly simplify
     dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
     dv.showMouse = 1;
@@ -44,10 +44,13 @@ end
 %% Parameters - dv.pa
 
 % Stimulus Size and Location (dv.disp - display parameters)
-dv.pa.objectSize = .2; % in percent of baseRect, sort of weird way 
+dv.pa.objectSize = 4; % in degrees
+
+% step size around the center, angle at which stimulus is presented
+dv.pa.stimThetas = 0:45:360;
 
 %%%%% Test Trial Stimulus Location and Geometry Parameters
-dv.pa.alpha = 10; % degrees of visual angle
+dv.pa.alpha = 8; % degrees of visual angle
 [dv.pa.Dx, dv.pa.Dy] = calcVisAngDS(dv.pa.alpha, dv.disp.viewdist, dv.disp.widthcm, dv.disp.heightcm, dv.disp.winRect(3), dv.disp.winRect(4)); % Func to calculate visual angle
 
 % Get the center coordinate of the window
