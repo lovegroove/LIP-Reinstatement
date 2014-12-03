@@ -355,12 +355,12 @@ PDS.breakRestart{dv.j} = dv.trial.breakRestart;
 PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 
 % For a Single Session
-if dv.singleSession && dv.j == 40 && strcmp(dv.trialType,'study') %current number of pairs in a block, make this a variable later
+if dv.singleSession && dv.j == dv.pa.singleSessionStudy && strcmp(dv.trialType,'study') %current number of pairs in a block, make this a variable later
     disp('Study Session finished. Test time!')
     dv.quit = 1;
     ShowCursor
     
-elseif dv.singleSession && dv.j == 80 && strcmp(dv.trialType,'test')
+elseif dv.singleSession && dv.j == dv.pa.singleSessionTest && strcmp(dv.trialType,'test')
     disp('Test Session finished. Thank you!')
     dv.quit = 1;
     ShowCursor
