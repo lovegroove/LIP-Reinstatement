@@ -342,6 +342,7 @@ end
 % Save quick eye measures
 if strcmp(dv.trialType, 'test')
 PDS.data.eyeLocProbe{dv.j} = dv.trial.eyeLoc;
+PDS.data.correctObject(dv.j) = dv.trial.correctObject;
 end
 
 %fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
@@ -593,6 +594,12 @@ end
                 dv.trial.placedObjects{1} = dv.trial.objectImageFile;
                 dv.trial.placedObjects{2} = dv.trial.foilObjectImageFile;
                 [dv.trial.object1, dv.trial.object2] = dv.trial.placedObjects{randsample(2,2)};
+                % Save correct
+                if strcmp(dv.trial.object1,dv.trial.objectImageFile)
+                    dv.trial.correctObject = 1;
+                elseif strcmp(dv.trial.object2,dv.trial.objectImageFile)
+                    dv.trial.correctObject = 2;
+                end
                 
                 % Object 1 - make texture and assign location
                 dv.trial.object1Image = imread(dv.trial.object1, dv.fileInfo.objectFormat); % Read in image
