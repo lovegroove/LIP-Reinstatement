@@ -1,16 +1,17 @@
 function [PDS,dv] = runLIPreinTrial(PDS,dv)
-% This function is a single trial, trials are interated through the wrapper function runPLDAPS
+% This function is a single trial, trials are interated through the wrapper
+% function runPLDAPScv (cv = color version)
 % PDS is a struct containing your data
-% dv is a struct containing your parameters (initialized in another function called lipreinstatement) and does not change
+% dv is a struct containing your parameters (initialized in another function called liprein) and does not change
 % dv.trial can be updated per trial to change paramters on each trial
 
 
-dv = defaultTrialVariables(dv); % setup default trial struct (need this?)
+dv = defaultTrialVariables(dv); % setup default trial struct
 
 
 %% Preallocation 
 %-------------------------------------------------------------------------%
-%dv.trial.objectLocs = {}; % not sure of dimensions right now
+dv.trial.objectLocs = {}; % not sure of dimensions right now
 
 % preallocate data aquisition variables
 flipTimes       = zeros(1e4,2);
@@ -34,25 +35,31 @@ dv.trial.graceTime = dv.pa.graceTime; % in case we want to add jitter
 %-------------------------------------------------------------------------%
 %Trial Parameters
 
+% Special Break fixation Options so we don't "miss" pairs being presented
 dv.trial.breakRestart = 0; % (binary option) Restart trial when fixation is broken rather than go to next trail, so we don't miss pairings
 dv.trial.nBreaks = 0; % Initialize
 
 % Set flags
 dv.trial.fixFlagOn = 0;
+dv.trial.fixDotOn = 0;
 dv.trial.delayRectOn = 0;
 dv.trial.virgin = 1; % boolean, load images/make textures the first time through each trial
 dv.trial.showCueFlag = 1;
 dv.trial.showPairFlag = 1;
 dv.trial.delayFlag = 1;
 dv.trial.showProbeFlag = 1;
-
+dv.trial.eyePosi = 0; %initialize counter
 %-------------------------------------------------------------------------%
-% Stimulus (object) angle and distance from center (fixation pt)**********
-dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func (can randomize this per trial if desired)
+% Stimulus (object) angle and distance from center (fixation pt), foil
+% object placed 180 deg. from correct object
+
+%randomize each trial if desired
+dv.trial.theta = dv.pa.stimThetas(randi(length(dv.pa.stimThetas)));
+
+%dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func
 dv = stimLoc(dv);
 
 %-------------------------------------------------------------------------%
-%************************************ need this stuff????****************
 %%% Degrees to pixels %%%
 % We input positions on the screen in degrees of visual angle, but
 % PsychToolbox takes calls to pixel locations. dv.disp.ppd is the pixels
@@ -129,7 +136,7 @@ dv.trial.ttime  = GetSecs - dv.trial.trstart;
 PDS.timing.syncTimeDuration(dv.j) = dv.trial.ttime;
 
 
-% % Query the frame duration - MY EDITION (needed? what about datapixx?)
+% % Query the frame duration - needed?
 % *****************
 ifi = Screen('GetFlipInterval', dv.disp.ptr);
 vbl = Screen('Flip', dv.disp.ptr); %Initially synchronize with retrace, take base time in vbl
@@ -230,9 +237,14 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
 
     %% DRAWING
  %---------------------------------------------------------------------%
-
+ % Show fixation cross if desired 
  if dv.trial.fixFlagOn
      Screen('DrawLines', dv.disp.ptr, dv.pa.allCoords, dv.pa.lineWidthPix, dv.pa.fixCrossColor,  [dv.pa.xCenter, dv.pa.yCenter], 2)
+ end
+ 
+ % Show red dot on fixation cross
+ if dv.trial.fixDotOn
+     Screen('DrawDots', dv.disp.ptr, [dv.pa.xCenter, dv.pa.yCenter], 10, [1,0,0], [], 2)
  end
  
  % Show Mouse pointer if desired 
@@ -249,7 +261,7 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     
 end % END WHILE LOOP
 
-Screen('Close'); % was necessary in prototype version because of drawing all the textures
+Screen('Close'); % was necessary in prototype version because of drawing all the textures, need to close offscreen windows
 
 PDS.timing.datapixxstoptime(dv.j) = Datapixx('GetTime');
 PDS.timing.trialend(dv.j) = GetSecs- dv.trial.trstart;
@@ -281,20 +293,24 @@ PDS.timing.reward{dv.j}      = dv.trial.timeReward(~isnan(dv.trial.timeReward));
 PDS.timing.breakfix(dv.j)    = dv.trial.timeBreakFix;
 
 
-%Timing states of interest
+% Saving timing states of interest and trial type for each trial
 if PDS.goodtrial(dv.j) == 1
     PDS.timing.timeShowCueStart{dv.j} = dv.trial.timeShowCueStart;
     if strcmp(dv.trialType, 'study')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeShowPairStart{dv.j} = dv.trial.timeShowPairStart;
     elseif strcmp(dv.trialType, 'test')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeDelayStart{dv.j} = dv.trial.timeDelayStart;
         PDS.timing.timeShowProbeStart{dv.j} = dv.trial.timeShowProbeStart;
     end
 else
     PDS.timing.timeShowCueStart{dv.j} = 0;
     if strcmp(dv.trialType, 'study')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeShowPairStart{dv.j} = 0;
     elseif strcmp(dv.trialType, 'test')
+        PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeDelayStart{dv.j} = 0;
         PDS.timing.timeShowProbeStart{dv.j} = 0;
     end
@@ -323,21 +339,36 @@ if dv.pass == 0
     PDS.eyepos{dv.j}         = eyepos(1:dv.trial.iSample+1,:);  % remove extra    
 end
 
+% Save quick eye measures
+if strcmp(dv.trialType, 'test')
+PDS.data.eyeLocProbe{dv.j} = dv.trial.eyeLoc;
+end
+
 %fprintf(' %.0f/%.0f, %.2f good.\r', sum(PDS.goodtrial), length(PDS.goodtrial), (sum(PDS.goodtrial)/length(PDS.goodtrial)))
 
 % SAVE pairings per trial and correct and foil object locations
-PDS.data.pairs{dv.j} = dv.pairOrder(dv.j,:);   % is this stuff right?
+PDS.data.pairs{dv.j} = dv.pairOrder(dv.j,:);  
 PDS.data.objectLocs{dv.j} = dv.trial.objectLocs; 
 
 PDS.breakRestart{dv.j} = dv.trial.breakRestart;
 PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 
+% For a Single Session
+if dv.singleSession && dv.j == 40 && strcmp(dv.trialType,'study') %current number of pairs in a block, make this a variable later
+    disp('Study Session finished. Test time!')
+    dv.quit = 1;
+    ShowCursor
+    
+elseif dv.singleSession && dv.j == 80 && strcmp(dv.trialType,'test')
+    disp('Test Session finished. Thank you!')
+    dv.quit = 1;
+    ShowCursor
+end
 
 %-------------------------------------------------------------------------%
 %%% INLINE FUNCTIONS
 %-------------------------------------------------------------------------%
     function held = fixationHeld(dv)
-        %         held = squarewindow(dv.pass,dv.disp.ctr(1:2)+dv.trial.fixXY-[dv.trial.eyeX dv.trial.eyeY],dv.trial.winW,dv.trial.winH);
         %         held = squarewindow(dv.pass,dv.disp.ctr(1:2)+dv.trial.fixXY-[dv.trial.eyeX dv.trial.eyeY],dv.trial.winW,dv.trial.winH);
         held = circlewindow(dv.pass,[dv.trial.eyeX dv.trial.eyeY]-(dv.trial.fixXY+dv.disp.ctr(1:2)),dv.trial.fpWin(1),dv.trial.fpWin(2));
     end
@@ -353,6 +384,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %             dv.trial.colorFixWindow = dv.disp.clut.bg;
             
             dv.trial.fixFlagOn = 1;
+            dv.trial.fixDotOn = 1;
 
             %%% TURN ON FIXATION DOT %%%
             pdsDatapixxFlipBit(dv.events.FIXATION) % fp1 ON
@@ -374,6 +406,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if  dv.trial.state == dv.states.FPON
             
             dv.trial.fixFlagOn = 1;
+            dv.trial.fixDotOn = 1;
             
             if dv.trial.ttime  < (dv.trial.preTrial+dv.trial.fpWait) && fixationHeld(dv)
 %                 dv.trial.colorFixDot = dv.disp.clut.targetnull;
@@ -399,11 +432,13 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.FPHOLD
             
             dv.trial.fixFlagOn = 1;
+            dv.trial.fixDotOn = 1;
             
             if dv.trial.ttime > dv.trial.timeFpEntered + dv.trial.fixPtOffset && fixationHeld(dv)
 %                 dv.trial.colorFixDot    = dv.disp.clut.bg;
 %                 dv.trial.colorFixWindow = dv.disp.clut.bg;
                 dv.trial.fixFlagOn = 0;
+                dv.trial.fixDotOn = 0;
                 
                 pdsDatapixxFlipBit(dv.events.FIXATION) % fixation cross
                 dv.trial.ttime      = GetSecs - dv.trial.trstart;
@@ -413,6 +448,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %                 dv.trial.colorFixDot    = dv.disp.clut.bg;
 %                 dv.trial.colorFixWindow = dv.disp.clut.bg;
                 dv.trial.fixFlagOn = 0;
+                dv.trial.fixDotOn = 0;
                 pdsDatapixxFlipBit(dv.events.BREAKFIX)
                 dv.trial.timeBreakFix = GetSecs - dv.trial.trstart;
                 dv.trial.state = dv.states.BREAKFIX;
@@ -421,8 +457,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
     end
     
     % TRIAL COMPLETE -- GIVE REWARD  -
-    % ********************************************** stuff in here we don't
-    % need/want???
+    % ********************************************** 
 %---------------------------------------------------------------------%
     function dv = trialComplete(dv)
         if dv.trial.state == dv.states.TRIALCOMPLETE
@@ -433,6 +468,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
 %             dv.trial.colorTarget2Window = dv.disp.clut.bg;
             
             dv.trial.fixFlagOn = 0; %probably not needed?
+            dv.trial.fixDotOn = 0;
             
             dv.trial.good = 1;
             if dv.pa.freeOn == 0
@@ -481,6 +517,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.BREAKFIX
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             % turn off stimulus
             %             dv.trial.colorFixDot        = dv.disp.clut.bg;            % fixation point 1 color
             %             dv.trial.colorTarget1Dot    = dv.disp.clut.bg;            % target color
@@ -536,9 +573,8 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 % Object - make texture and assign location
                 dv.trial.objectImage = imread(dv.trial.objectImageFile, dv.fileInfo.objectFormat); % Read in image
                 dv.trial.objectImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.objectImage); % Create Texture
-                [s1, s2, s3] = size(dv.trial.objectImage);
-                dv.trial.baseRect = [0 0 s1 s2];
-                dv.trial.destRect = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.pa.xCenter, dv.pa.yCenter); %Set size and location (find a better way to do size manipulations)
+                dv.trial.baseRect = [0 0 dv.disp.ppd .* dv.pa.objectSize dv.disp.ppd .* dv.pa.objectSize];
+                dv.trial.destRect = CenterRectOnPointd(dv.trial.baseRect, dv.pa.xCenter, dv.pa.yCenter); %Set size and location (find a better way to do size manipulations)
                 
             %---------------------------------------------------------------------%
                 % For TEST Trial Type
@@ -561,16 +597,14 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 % Object 1 - make texture and assign location
                 dv.trial.object1Image = imread(dv.trial.object1, dv.fileInfo.objectFormat); % Read in image
                 dv.trial.object1ImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.object1Image); % Create Texture
-                [s1, s2, s3] = size(dv.trial.object1Image);
-                dv.trial.baseRect = [0 0 s1 s2];
-                dv.trial.destRect1 = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.trial.object1loc(1), dv.trial.object1loc(2)); %Set size and location
+                dv.trial.baseRect = [0 0 dv.disp.ppd .* dv.pa.objectSize dv.disp.ppd .* dv.pa.objectSize];
+                dv.trial.destRect1 = CenterRectOnPointd(dv.trial.baseRect, dv.trial.object1loc(1), dv.trial.object1loc(2)); %Set size and location
                 
                 % Object 2 - make texture and assign location
                 dv.trial.object2Image = imread(dv.trial.object2, dv.fileInfo.objectFormat); % Read in image
                 dv.trial.object2ImageTexture = Screen('MakeTexture', dv.disp.ptr, dv.trial.object2Image); % Create Texture
-                [s1, s2, s3] = size(dv.trial.object2Image);
-                dv.trial.baseRect = [0 0 s1 s2];
-                dv.trial.destRect2 = CenterRectOnPointd(dv.trial.baseRect .* dv.pa.objectSize, dv.trial.object2loc(1), dv.trial.object2loc(2)); %Set size and location
+                dv.trial.baseRect = [0 0 dv.disp.ppd .* dv.pa.objectSize dv.disp.ppd .* dv.pa.objectSize];
+                dv.trial.destRect2 = CenterRectOnPointd(dv.trial.baseRect, dv.trial.object2loc(1), dv.trial.object2loc(2)); %Set size and location
                 
                 % Save correct object and location
                 dv.trial.objectLocs = {dv.trial.placedObjects{1}, dv.trial.placedObjects{2}; dv.trial.destRect1, dv.trial.destRect2};
@@ -588,6 +622,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
         if dv.trial.state == dv.states.SHOWCUE 
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             
             if dv.trial.showCueFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -619,6 +654,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             % Just for study trials
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             
             if dv.trial.showPairFlag
             dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -646,7 +682,8 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
     function dv = delay(dv)
         if dv.trial.state == dv.states.DELAY
             
-            dv.trial.fixFlagOn = 0; % turn on delay box instead
+            dv.trial.fixFlagOn = 1; 
+            dv.trial.fixDotOn = 1;
             
             if dv.trial.delayFlag
                 dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -654,23 +691,31 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 dv.trial.delayFlag = 0;
             end
             
-            if dv.trial.delayRectOn
-                Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
-            end
+            % no longer using box
+%             if dv.trial.delayRectOn
+%                 Screen('FillRect', dv.disp.ptr, dv.pa.delayBoxColor, dv.pa.centeredDelayRect);
+%             end
             
             % need a grace time for them to look back at the center
             if dv.trial.ttime < dv.trial.graceTime + dv.trial.timeDelayStart
-                dv.trial.delayRectOn = 1;
+                %dv.trial.delayRectOn = 1;
+                dv.trial.fixFlagOn = 1;
+                dv.trial.fixDotOn = 1;
                 
             elseif dv.trial.ttime < dv.trial.timeDelayStart + dv.trial.graceTime + dv.pa.delayTime && fixationHeld(dv)  % && dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime
                 %%%% Delay (4.5s default)
-                dv.trial.delayRectOn = 1; % redundant (already set by this point)
+                %dv.trial.delayRectOn = 1; % redundant (already set by this point)
+                dv.trial.fixFlagOn = 1;
+                dv.trial.fixDotOn = 1;
                 
                 % briefly represent fixation pt to cue onset of memory
                 % probe (.5s)
             elseif dv.trial.ttime < dv.pa.delayTime + dv.trial.timeDelayStart + dv.trial.graceTime + dv.pa.probeCueTime && fixationHeld(dv)
+                
+                % Red dot off for visual cue
+                dv.trial.fixDotOn = 0;
                 dv.trial.fixFlagOn = 1;
-                dv.trial.delayRectOn = 0;
+                %dv.trial.delayRectOn = 0;
                 
             elseif dv.trial.ttime >= dv.pa.delayTime + dv.trial.timeDelayStart + dv.pa.probeCueTime + dv.trial.graceTime && fixationHeld(dv)
                 dv.trial.state = dv.states.SHOWPROBE;
@@ -689,6 +734,7 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
             % just for test trials
             
             dv.trial.fixFlagOn = 0;
+            dv.trial.fixDotOn = 0;
             
             if dv.trial.showProbeFlag
                 dv.trial.ttime = GetSecs - dv.trial.trstart;
@@ -711,6 +757,25 @@ PDS.nBreaks{dv.j} = dv.trial.nBreaks;
                 dv.trial.timeComplete = dv.trial.ttime;
                 dv.trial.state = dv.states.TRIALCOMPLETE;
             end
+            
+            % Quick and dirty eye measures
+            dv.trial.eyePosi = dv.trial.eyePosi + 1;
+            if dv.trial.eyeX >= dv.trial.destRect1(1) && dv.trial.eyeX <= dv.trial.destRect1(3) && dv.trial.eyeY >= dv.trial.destRect1(2) && dv.trial.eyeY <= dv.trial.destRect1(4) 
+
+                % need to add in separate timer and easy first saccade
+                % metric (don't have to though can calcluate everything)
+%             dv.trial.timeRect1Start = GetSecs;
+%             dv.trial.cumTimeRect1 = GetSecs - dv.trial.timeRect1Start;
+%             
+            dv.trial.eyeLoc(dv.trial.eyePosi) = 1;
+            
+            elseif dv.trial.eyeX >= dv.trial.destRect2(1) && dv.trial.eyeX <= dv.trial.destRect2(3) && dv.trial.eyeY >= dv.trial.destRect2(2) && dv.trial.eyeY <= dv.trial.destRect2(4)
+            dv.trial.eyeLoc(dv.trial.eyePosi) = 2;
+            
+            else
+            dv.trial.eyeLoc(dv.trial.eyePosi) = 0;    
+            end
+            
         end
     end
 
