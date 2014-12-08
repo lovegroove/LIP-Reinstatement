@@ -44,6 +44,7 @@ for i = 1:n
     prop2Session(i) = prop2;
     prop0Session(i) = prop0;
     
+    % first saccades
     if find(PDS.data.eyeLocProbe{i} == 1,1) < find(PDS.data.eyeLocProbe{i} == 2,1)
         firstSaccade(i) = 1;
         if PDS.data.correctObject(i) == 1 && firstSaccade(i) == 1
@@ -64,34 +65,78 @@ end
 
 %%  Plotting
 
+trialRange = [123 162];
 
-propNonmatchTime = dv.pa.probeTime - (propMatchTime(125:164) + prop0Session(125:164));
-y = [propMatchTime(125:164) propNonmatchTime prop0Session(125:164)]; %specific indices here NOTE
-subplot(121), h = barwitherr(std(y),mean(y));
+% Total viewing time in a session
+propNonmatchTime = dv.pa.probeTime - (propMatchTime(trialRange(1):trialRange(2)) + prop0Session(trialRange(1):trialRange(2))); %125:164
+y = [propMatchTime(trialRange(1):trialRange(2)) propNonmatchTime prop0Session(trialRange(1):trialRange(2))]; %specific indices here NOTE , propNon is alreayd specific indicies
+subplot(221), h = barwitherr(std(y),mean(y));
 title('Total Viewing time - 1 Session')
 set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
 set(h,'FaceColor','b');
 ylabel('Viewing Time (s)')
-subplot(122), boxplot(y)
+subplot(222), boxplot(y)
 title('Total Viewing time - 1 Session')
 ylabel('Viewing Time (s)')
 xtix = {'Matching','Non-matching','Neither'};   
 xtixloc = [1 2 3];      
 set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
-
-%%
-subplot(1,2,1), boxplot(propMatchSession(125:164)) 
+%  Proportion viewing matched vs. non-matched
+subplot(2,2,3), boxplot(propMatchSession(trialRange(1):trialRange(2))) 
+title('Proportion of time viewing the matched vs. the non-matched stimulus')
 ylabel('Proportion of time viewing the matching stimulus vs. non-matching')
-subplot(1,2,2), hist(propMatchSession(125:164))
+subplot(2,2,4), hist(propMatchSession(trialRange(1):trialRange(2)))
+g = findobj(gca,'Type','patch');
+set(g,'FaceColor','b');
+title('Proportion of time viewing the matched vs. the non-matched stimulus')
 xlabel('Proportion of time viewing the matching stimulus vs. non-matching')
 ylabel('Number of Trials')
-mean(propMatchSession(125:164))
-std(propMatchSession(125:164))
-median(propMatchSession(125:164))
+% mean(propMatchSession(125:164))
+% std(propMatchSession(125:164))
+% median(propMatchSession(125:164))
 
-propTrialsCorrect = length(find(propMatchSession(125:164) > .5)) / length(propMatchSession(125:164)); 
+propTrialsCorrect = length(find(propMatchSession(trialRange(1):trialRange(2)) > .5)) / length(propMatchSession(trialRange(1):trialRange(2)));
+propTrialsCorrect
 
+%% Across Sessions
+
+for k = 1:length(propMatchTime)
+    if isnan(propMatchTime(k))
+        propMatchTime(k) = [];
+    end
+    if isnan(prop0Session(k))
+        prop0Session(k) = [];
+    end
+    
+end
+
+% Total viewing time 
+propNonmatchTime = dv.pa.probeTime - (propMatchTime + prop0Session); 
+y = [propMatchTime propNonmatchTime prop0Session]; 
+subplot(221), h = barwitherr(std(y),mean(y));
+title('Total Viewing time - Across Sessions')
+set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
+set(h,'FaceColor','b');
+ylabel('Viewing Time (s)')
+subplot(222), boxplot(y)
+title('Total Viewing time - Across Sessions')
+ylabel('Viewing Time (s)')
+xtix = {'Matching','Non-matching','Neither'};   
+xtixloc = [1 2 3];      
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+subplot(2,2,3), boxplot(propMatchSession) 
+title('Proportion of time viewing the matched vs. the non-matched stimulus')
+ylabel('Proportion of time viewing the matching stimulus vs. non-matching')
+subplot(2,2,4), hist(propMatchSession);
+g = findobj(gca,'Type','patch');
+set(g,'FaceColor','b');
+title('Proportion of time viewing the matched vs. the non-matched stimulus')
+xlabel('Proportion of time viewing the matching stimulus vs. non-matching')
+ylabel('Number of Trials')
+
+%%
 
 % plot(propMatchSession(125:164))
 % 
