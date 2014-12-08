@@ -62,31 +62,36 @@ for i = 1:n
 
 end
 
-%%
-% oddsCorrectSession(125:164)
-% mean(oddsCorrectSession(125:164))
+%%  Plotting
+
+
 propNonmatchTime = dv.pa.probeTime - (propMatchTime(125:164) + prop0Session(125:164));
-y = [propMatchTime(125:164) prop0Session(125:164) propNonmatchTime]; %specific indices here NOTE
-hold on
-bar(mean(y))
-errorbar(mean(y),std(y), 'r', 'Marker', 'none', 'LineStyle', 'none' );
-hold off
-
-hold on
-subplot(121), bar(mean(y)), errorbar(mean(y),std(y),'.')
+y = [propMatchTime(125:164) propNonmatchTime prop0Session(125:164)]; %specific indices here NOTE
+subplot(121), h = barwitherr(std(y),mean(y));
+title('Total Viewing time - 1 Session')
+set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
+set(h,'FaceColor','b');
+ylabel('Viewing Time (s)')
 subplot(122), boxplot(y)
-hold off
+title('Total Viewing time - 1 Session')
+ylabel('Viewing Time (s)')
+xtix = {'Matching','Non-matching','Neither'};   
+xtixloc = [1 2 3];      
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
-subplot(1,2,1), boxplot(propMatchSession(125:164)) % maybe call it prop matching instead
+
+%%
+subplot(1,2,1), boxplot(propMatchSession(125:164)) 
+ylabel('Proportion of time viewing the matching stimulus vs. non-matching')
 subplot(1,2,2), hist(propMatchSession(125:164))
+xlabel('Proportion of time viewing the matching stimulus vs. non-matching')
+ylabel('Number of Trials')
 mean(propMatchSession(125:164))
 std(propMatchSession(125:164))
 median(propMatchSession(125:164))
 
 propTrialsCorrect = length(find(propMatchSession(125:164) > .5)) / length(propMatchSession(125:164)); 
-length(find(propMatchSession(125:164) < .5)) 
 
-firstSaccadeCorrect(125:164)
 
 % plot(propMatchSession(125:164))
 % 

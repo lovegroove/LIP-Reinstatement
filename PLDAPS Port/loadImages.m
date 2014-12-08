@@ -53,9 +53,13 @@ objectImages = dir([dv.fileInfo.objectPath '*.' dv.fileInfo.objectFormat]);
 sceneImages = dir([dv.fileInfo.scenePath '*.' dv.fileInfo.sceneFormat]);
 
 % Randomize Images and pair them
-objectImages_mask = Shuffle(1:numel(objectImages));
-sceneImages_mask = Shuffle(1:numel(sceneImages));
-objectImages_mask = Shuffle(repmat(objectImages_mask, 1, length(sceneImages_mask) / length(objectImages_mask)));
+% objectImages_mask = Shuffle(1:numel(objectImages));
+% sceneImages_mask = Shuffle(1:numel(sceneImages));
+% objectImages_mask = Shuffle(repmat(objectImages_mask, 1, length(sceneImages_mask) / length(objectImages_mask)));
+
+% Testing randperm instead because the rig doesn't have Shuffle
+sceneImages_mask = randperm(length(sceneImages));
+objectImages_mask = datasample(repmat(randperm(length(objectImages)),1,(length(sceneImages) / length(objectImages))),length(sceneImages),'Replace',false);
 
 % Saving order
 dv.pairOrder = cell(numel(objectImages_mask),4);
