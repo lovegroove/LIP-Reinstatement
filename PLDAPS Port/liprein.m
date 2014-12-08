@@ -9,8 +9,8 @@ dv.filePaths = 'shopRig'; % set here rather than in loadImages func now
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 dv.singleSession = 1;
-dv.pa.singleSessionStudy = 124;
-dv.pa.singleSessionTest = 164;
+dv.pa.singleSessionStudy = 40;
+dv.pa.singleSessionTest = 80;
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; current overwriting some defaults too
 
