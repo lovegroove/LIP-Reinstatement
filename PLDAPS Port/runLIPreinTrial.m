@@ -362,7 +362,7 @@ if dv.singleSession && dv.j == dv.pa.singleSessionStudy && strcmp(dv.trialType,'
     
 elseif dv.singleSession && dv.j == dv.pa.singleSessionTest && strcmp(dv.trialType,'test')
     disp('Test Session finished. Thank you!')
-    dv.quit = 1;
+    dv.quit = 2;
     ShowCursor
 end
 
