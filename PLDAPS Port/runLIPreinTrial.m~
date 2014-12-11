@@ -183,10 +183,6 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     % 5) DELAY (Test Trial)
     dv = delay(dv);
     
-    % Alternative Strict Delay (Test Trial)
-    dv = waitForFixationDelay(dv);
-    dv = holdFixationDelay(dv);
-    
     % 6) SHOW PROBE (Test Trial)
     dv = showProbe(dv);
     
@@ -456,8 +452,7 @@ function dv = waitForFixationDelay(dv)
                 dv.trial.state = dv.states.BREAKFIX;
             end
         end
-end
-
+        
 % HOLD FIXATION FOR APPROPRIATE DURATION
 %---------------------------------------------------------------------%
     function dv = holdFixation(dv)
@@ -522,7 +517,7 @@ end
                 dv.trial.timeBreakFix = GetSecs - dv.trial.trstart;
                 dv.trial.state = dv.states.BREAKFIX;
                 
-            elseif dv.trial.ttime > (dv.trial.holdFixDelayStart + dv.pa.delayTime) && fixationHeld(dv)
+            elseif dv.trial.ttime < (dv.trial.holdFixDelayStart + dv.pa.delayTime + dv.pa.probeCueTime) && fixationHeld(dv)
                  % Red dot off for visual cue
                 dv.trial.fixDotOn = 0;
                 dv.trial.fixFlagOn = 1;
@@ -683,15 +678,15 @@ end
 %---------------------------------------------------------------------%
     function dv = showCue(dv)
         % shows Scene Cue in both study and test trials
-        if dv.trial.state == dv.states.SHOWCUE
+        if dv.trial.state == dv.states.SHOWCUE 
             
             dv.trial.fixFlagOn = 0;
             dv.trial.fixDotOn = 0;
             
             if dv.trial.showCueFlag
-                dv.trial.ttime = GetSecs - dv.trial.trstart;
-                dv.trial.timeShowCueStart = dv.trial.ttime;
-                dv.trial.showCueFlag = 0;
+            dv.trial.ttime = GetSecs - dv.trial.trstart;
+            dv.trial.timeShowCueStart = dv.trial.ttime;
+            dv.trial.showCueFlag = 0;
             end
             
             %%%%%% Scene Alone (1s default)
@@ -703,14 +698,15 @@ end
                     dv.trial.state = dv.states.SHOWPAIR;
                 elseif strcmp(dv.trialType, 'test')
                     dv.trial.state = dv.states.DELAY;
-                elseif dv.pa.strictDelay == 1 && strcmp(dv.trialType, 'test')
-                    dv.trial.state = dv.states.FPONDELAY; % added strict delay
+                    if dv.pa.strictDelay == 1
+                        dv.trial.state = dv.states.FPONDELAY % added strict delay
+                    end
                 end
+                
             end
             
-        end
-        
-    end
+        end %end if trial state
+    end % end func
 
 % SHOW PAIR
 %---------------------------------------------------------------------%
