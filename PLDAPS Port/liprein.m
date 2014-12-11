@@ -9,8 +9,8 @@ dv.filePaths = 'shopRig'; % set here rather than in loadImages func
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 dv.singleSession = 1;
-dv.pa.singleSessionStudy = 124;
-dv.pa.singleSessionTest = 164;
+dv.pa.singleSessionStudy = 80;
+dv.pa.singleSessionTest = 120;
 dv.pa.strictDelay = 1; %boolean
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; current overwriting some defaults too
@@ -24,7 +24,7 @@ dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 % completely and have it run right
 dv.pass = 0; % ignore eyetracker by flagging fixationHeld as always true
 
-dv.mouse = 0; % just toggle this if you want to use the mouse
+dv.mouse = 1; % just toggle this if you want to use the mouse
 if dv.mouse % this is dumb i know, just to quickly simplify
     dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
     dv.showMouse = 1;

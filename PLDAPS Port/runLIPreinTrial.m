@@ -51,6 +51,7 @@ dv.trial.showProbeFlag = 1;
 dv.trial.waitFPDelayFlag = 1;
 dv.trial.holdFixDelayFlag = 1;
 dv.trial.eyePosi = 0; %initialize counter
+dv.trial.switchTrialType = 0;
 %-------------------------------------------------------------------------%
 % Stimulus (object) angle and distance from center (fixation pt), foil
 % object placed 180 deg. from correct object
@@ -238,6 +239,12 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
         PDS.timing.timestamplog = PsychDataPixx('GetTimestampLog', 1);
         dv.quit = 2;
         ShowCursor
+    elseif dv.trial.firstPressQ(dv.kb.tKey) % T = switch trial type
+        dv.quit = 1;
+        ShowCursor
+        Screen('Flip', dv.disp.ptr);
+        dv.trial.switchTrialType = 1;
+        disp('Trial type switched. Type return to start next trial...')
     end
     
 
@@ -370,6 +377,16 @@ elseif dv.singleSession && dv.j == dv.pa.singleSessionTest && strcmp(dv.trialTyp
     disp('Test Session finished. Thank you!')
     dv.quit = 2;
     ShowCursor
+end
+
+% Quick trial type switching when t is pressed, it automatically toggles it
+if dv.trial.switchTrialType
+    if strcmp(dv.trialType, 'study')
+        dv.trialType = 'test';
+    elseif strcmp(dv.trialType, 'test')
+        dv.trialType = 'study';
+    end
+    dv.trial.switchTrialType = 0; % probably not needed since set at the beginning of the trial as well
 end
 
 %-------------------------------------------------------------------------%
