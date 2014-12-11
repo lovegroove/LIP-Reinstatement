@@ -44,6 +44,7 @@ for i = 1:n
     prop2Session(i) = prop2;
     prop0Session(i) = prop0;
     
+    % first saccades
     if find(PDS.data.eyeLocProbe{i} == 1,1) < find(PDS.data.eyeLocProbe{i} == 2,1)
         firstSaccade(i) = 1;
         if PDS.data.correctObject(i) == 1 && firstSaccade(i) == 1
@@ -64,47 +65,97 @@ end
 
 %%  Plotting
 
+% PDS.trialType{}
+trialRange = [41 80];
 
-propNonmatchTime = dv.pa.probeTime - (propMatchTime(125:164) + prop0Session(125:164));
-y = [propMatchTime(125:164) propNonmatchTime prop0Session(125:164)]; %specific indices here NOTE
-subplot(121), h = barwitherr(std(y),mean(y));
-title('Total Viewing time - 1 Session')
+propTrialsCorrect = length(find(propMatchSession(trialRange(1):trialRange(2)) > .5)) / length(propMatchSession(trialRange(1):trialRange(2)));
+
+% Total viewing time in a session
+propNonmatchTime = dv.pa.probeTime - (propMatchTime(trialRange(1):trialRange(2)) + prop0Session(trialRange(1):trialRange(2))); %125:164
+y = [propMatchTime(trialRange(1):trialRange(2)) propNonmatchTime prop0Session(trialRange(1):trialRange(2))]; %specific indices here NOTE , propNon is alreayd specific indicies
+subplot(221), h = barwitherr(std(y),mean(y));
+title(sprintf('Total Viewing time - %s', dv.subj)) % dv.pairOrder{1,5} particular session
 set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
 set(h,'FaceColor','b');
 ylabel('Viewing Time (s)')
-subplot(122), boxplot(y)
-title('Total Viewing time - 1 Session')
+subplot(222), boxplot(y)
+title(sprintf('Total Viewing time - %s', dv.subj)) 
 ylabel('Viewing Time (s)')
 xtix = {'Matching','Non-matching','Neither'};   
 xtixloc = [1 2 3];      
 set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
+%  Proportion viewing matched vs. non-matched
+subplot(2,2,3), boxplot(propMatchSession(trialRange(1):trialRange(2))) 
+title(sprintf('Proportion of Viewing Time: matching vs. the non-matching, Percent Correct: %0.5g',propTrialsCorrect * 100))
+ylabel('Proportion of Viewing Time: matching vs. the non-matching')
+subplot(2,2,4), hist(propMatchSession(trialRange(1):trialRange(2)))
+g = findobj(gca,'Type','patch');
+set(g,'FaceColor','b');
+title(sprintf('Proportion of Viewing Time: matching vs. the non-matching, Percent Correct: %0.5g',propTrialsCorrect * 100))
+xlabel('Proportion of Viewing Time: matching vs. the non-matching')
+ylabel('Number of Trials')
+% mean(propMatchSession(125:164))
+% std(propMatchSession(125:164))
+% median(propMatchSession(125:164))
 
-%%
-subplot(1,2,1), boxplot(propMatchSession(125:164)) 
+    
+%% Across Sessions
+
+prop0Session(isnan(propMatchTime))=[];
+propMatchTime(isnan(propMatchTime))=[];
+propMatchSession(isnan(propMatchSession))=[];
+
+% Total viewing time 
+propNonmatchTime = dv.pa.probeTime - (propMatchTime + prop0Session); 
+y = [propMatchTime propNonmatchTime prop0Session]; 
+subplot(221), h = barwitherr(std(y),mean(y));
+title('Total Viewing time - Across Sessions')
+set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
+set(h,'FaceColor','b');
+ylabel('Viewing Time (s)')
+subplot(222), boxplot(y)
+title('Total Viewing time - Across Sessions')
+ylabel('Viewing Time (s)')
+xtix = {'Matching','Non-matching','Neither'};   
+xtixloc = [1 2 3];      
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+subplot(2,2,3), boxplot(propMatchSession) % need to remove nans here?!?!?!?!?!?!?!?!?!?
+title('Proportion of time viewing the matched vs. the non-matched stimulus')
 ylabel('Proportion of time viewing the matching stimulus vs. non-matching')
-subplot(1,2,2), hist(propMatchSession(125:164))
+subplot(2,2,4), hist(propMatchSession); % and here?!?!?!?!?
+g = findobj(gca,'Type','patch');
+set(g,'FaceColor','b');
+title('Proportion of time viewing the matched vs. the non-matched stimulus')
 xlabel('Proportion of time viewing the matching stimulus vs. non-matching')
 ylabel('Number of Trials')
-mean(propMatchSession(125:164))
-std(propMatchSession(125:164))
-median(propMatchSession(125:164))
 
-propTrialsCorrect = length(find(propMatchSession(125:164) > .5)) / length(propMatchSession(125:164)); 
-
+%%
 
 % plot(propMatchSession(125:164))
 % 
-prop1Session(125:164)
-prop2Session(125:164)
-prop0Session(125:164)
+% prop1Session(125:164)
+% prop2Session(125:164)
+% prop0Session(125:164)
 
-x = [ones(length(propMatchSession(125:164)),1) firstSaccadeCorrect(125:164)];
-[B,BINT,R,RINT,STATS] = regress(propMatchSession(125:164),x);
-regstats(propMatchSession(125:164),firstSaccadeCorrect(125:164))
-scatter(yhat,r)
+x = [ones(length(firstSaccadeCorrect),1) firstSaccadeCorrect];
+[B,BINT,R,RINT,STATS] = regress(propMatchSession,x);
+regstats(propMatchSession,firstSaccadeCorrect)
+%scatter(yhat,r)
 
 %---------------------
 % single trial
 % proportion of viewing time over trial
 % heat map superimposed on images
+
+
+
+%%
+
+%publish func or export_fig
+
+export_fig dagInitialSummary -pdf -append
+
+
+

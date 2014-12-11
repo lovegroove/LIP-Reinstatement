@@ -5,13 +5,12 @@ function dv = liprein(dv)
 
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
-dv.filePaths = 'shopRig'; % set here rather than in loadImages func
+dv.filePaths = 'shopRig'; % set here rather than in loadImages func now
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 dv.singleSession = 1;
 dv.pa.singleSessionStudy = 124;
 dv.pa.singleSessionTest = 164;
-dv.pa.strictDelay = 1; %boolean
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; current overwriting some defaults too
 
@@ -36,7 +35,8 @@ end
 %-------------------------------------------------------------------------%
 % Don't forget to CHANGE FILE PATHS on other rigs
 % Load images function - currently calls new pairs on every "new" session
-% So remember that!
+% So if you are running a test session after a study, you need to open the
+% same PDS file!!!!
 %****************** 
 if dv.newsession 
 dv = loadImages(dv);
@@ -119,9 +119,6 @@ dv.states.FPON      = 2;
 dv.states.FPHOLD    = 3;
 dv.states.TRIALCOMPLETE = 6;
 dv.states.BREAKFIX  = 7;
-
-dv.states.FPONDELAY = 12;
-dv.states.FPHOLDDELAY = 13;
 
 dv.states.SHOWCUE = 8;
 dv.states.SHOWPAIR = 9;
