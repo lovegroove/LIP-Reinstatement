@@ -66,7 +66,7 @@ end
 %%  Plotting
 
 % PDS.trialType{}
-trialRange = [41 80];
+trialRange = [161 240];
 
 propTrialsCorrect = length(find(propMatchSession(trialRange(1):trialRange(2)) > .5)) / length(propMatchSession(trialRange(1):trialRange(2)));
 
