@@ -46,6 +46,8 @@ try
     opts.condition  = condition;
     opts.newsession = newsession;
     
+    
+    
     %% Setup and File management
     % Setup filename and data directories. Add rig specific parameters (set in
     % setupPLDAPS) and then run the condition file which sets up experimental
@@ -98,7 +100,9 @@ try
             error('specify rig file')
         end
         
+        
         dv.subj = opts.subj; 
+        dv.init = now;
         dv.pref = Prefs; 
         
         % pick YOUR experiment's main CONDITION file-- this is where all
