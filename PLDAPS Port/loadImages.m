@@ -77,13 +77,19 @@ end
 
 % Proliferate pairings for many trials - 40 is the current size of a
 % stimulus set: 8 shapes, each paired with 5 scenes
-% for i = 1:dv.finish / 40 
-%     dv.pairOrder = [dv.pairOrder; datasample(dv.pairOrder,40,1,'replace',false)];  %should we overwrite dv.pairOrder or no?
+% for i = 1:dv.finish / size(dv.pairOrder,1) 
+%     dv.pairOrder = [dv.pairOrder;
+%     datasample(dv.pairOrder,size(dv.pairOrder,1),1,'replace',false)]; % should we overwrite dv.pairOrder, this was the problem!!!!!!
 % end
 
-% Proliferate - alternative to using datasample
-pairOrderRep = repmat(dv.pairOrder,30,4); % also this is taking out total trial # (dv.finish) but does this really matter?
-dv.pairOrder = pairOrderRep(randperm(length(pairOrderRep))); % still overwriting pairOrder here
+pairOrderTemp = cell(numel(dv.finish),4);
+pairOrderTemp = datasample(dv.pairOrder,size(dv.pairOrder,1),1,'replace',false);
+for i = 1:dv.finish / size(dv.pairOrder,1)
+    pairOrderRep = datasample(dv.pairOrder,size(dv.pairOrder,1),1,'replace',false);
+    pairOrderTemp = vertcat(pairOrderTemp, pairOrderRep);
+end
+
+dv.pairOrder = pairOrderTemp;
 
 % Attach Session ID
 sessionID = repmat(cellstr(dv.pref.sfile), length(dv.pairOrder), 1); % is dv.finish or the +40 going to be a problem here?
