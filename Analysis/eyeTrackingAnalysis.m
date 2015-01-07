@@ -76,8 +76,8 @@ for iTrial = 1:n
         prop2Time(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 2));
         prop0Time(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 0));
         
-        relativeMatch(iTrial) = prop1 / (prop1 + prop2);
-        relativeMatchTime(iTrial) = prop1Time / (prop1Time + prop2Time);
+        relativeMatch(iTrial) = prop1(iTrial) / (prop1(iTrial) + prop2(iTrial));
+        relativeMatchTime(iTrial) = prop1Time(iTrial) / (prop1Time(iTrial) + prop2Time(iTrial));
     else
         firstSaccadeSample(iTrial) = NaN;
         firstSaccadeTimeInState(iTrial) = NaN;
@@ -100,6 +100,41 @@ firstSaccadeStatus = firstSaccadeStatus(~isnan(firstSaccadeStatus));
 %% Analysis
 
 
+%% Plotting
+% percent correct
+pcTrials = length(find(relativeMatch > .5)) / length(relativeMatch);
+
+figure;
+% Total viewing time in a session
+relativeNonmatchTime = dv.pa.probeTime - (relativeMatchTime + prop0Time); %?????? can't have negatives
+y = [relativeMatchTime relativeNonmatchTime prop0Time];
+subplot(221), h = barwitherr(std(y),mean(y));
+title(sprintf('Total Viewing time - %s', dv.subj)) 
+set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
+set(h,'FaceColor','b');
+ylabel('Viewing Time (s)')
+subplot(222), boxplot(y)
+title(sprintf('Total Viewing time - %s', dv.subj))
+ylabel('Viewing Time (s)')
+xtix = {'Matching','Non-matching','Neither'};
+xtixloc = [1 2 3];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+%  Relative Viewing matched vs. non-matched
+subplot(2,2,3), boxplot(relativeMatch)
+title(sprintf('Proportion of Viewing Time: matching vs. the non-matching, Percent Correct: %0.5g',pcTrials * 100))
+ylabel('Relative Viewing Time: matching vs. the non-matching')
+subplot(2,2,4), hist(relativeMatch)
+g = findobj(gca,'Type','patch');
+set(g,'FaceColor','b');
+title(sprintf('Relative Viewing Time: matching vs. the non-matching, Percent Correct: %0.5g',pcTrials * 100))
+xlabel('Relative Viewing Time: matching vs. the non-matching')
+ylabel('Number of Trials')
+
+
+
+
+%%
 % RTs
 saccadeRT = [firstSaccadeTimeInState firstSaccadeStatus];
 anova1(saccadeRT(:,1),saccadeRT(:,2))
@@ -112,7 +147,7 @@ firstSaccadeTimeInState2 = firstSaccadeTimeInState(end/2+1:end);
 
 %% logistic regression on RTs and first saccades
 x = saccadeRT(:,1);
-firstSaccadeStatus(firstSaccadeStatus == 2) = 0; % need a binary variable 
+firstSaccadeStatus(firstSaccadeStatus == 2) = 0; % need a binary variable
 y = firstSaccadeStatus;
 
 figure;
@@ -120,8 +155,8 @@ figure;
 yfit = glmval(b,x,'logit');
 
 xx = linspace(0,1.8);
- yfit = glmval(b,xx,'logit');
- plot(x,y,'o',xx,yfit,'-')
+yfit = glmval(b,xx,'logit');
+plot(x,y,'o',xx,yfit,'-')
 
 
 
