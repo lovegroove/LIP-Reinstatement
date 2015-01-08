@@ -8,13 +8,14 @@ dv.trialFunction = 'runLIPreinTrial';
 dv.filePaths = 'shopRig'; % set here rather than in loadImages func
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
+
 dv.singleSession = 1;
 dv.pa.singleSessionStudy = 40;
 dv.pa.singleSessionTest = 80;
+
 dv.pa.strictDelay = 1; %boolean
 
 dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; current overwriting some defaults too
-
 Datapixx('Open') % HACK: Must reopen datapixx beacause I'm not using overlay so I can get colors
 
 dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
