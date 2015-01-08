@@ -8,6 +8,8 @@ format longg
 eyePos = PDS.eyepos(strcmp(PDS.trialType,'test'));
 objLocs = PDS.data.objectLocs(strcmp(PDS.trialType,'test'));
 
+%PDS.data.correctObject
+
 state = dv.states.SHOWPROBE; %only the eyePos during memory probe
 
 % NOTE: Double check that the objlocs always have the correct target first in the array!!!!!!!!!!!!!!!!!!!! 
@@ -36,20 +38,32 @@ for iTrial = 1:n
     sampleLen = length(eyePosState{iTrial});
     
     for jSample = 1:sampleLen
-        % eyes within correct object boundaries  #### changing array structure of objlocs, so must update!!!!! and also check which destRect is actually right!!!!!
-        if eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{2,1}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{2,1}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{2,1}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{2,1}(1,4)
-            
-        eyePosProp{iTrial}(jSample,1) = 1;    
-            
-        % eyes within foil object boundaries
-        elseif eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{2,2}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{2,2}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{2,2}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{2,2}(1,4)
-            
-        eyePosProp{iTrial}(jSample,1) = 2;  
+        % eyes within 1st object boundaries  
+        if eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{1,3}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{1,3}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{1,3}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{1,3}(1,4)
         
-        % eyes in neither
-        else
+            if PDS.data.correctObject{iTrial} == 1
+                % correct
+                eyePosProp{iTrial}(jSample,1) = 1;  
+                
+            elseif PDS.data.correctObject{iTrial} == 2
+                % incorrect (FA)
+                eyePosProp{iTrial}(jSample,1) = 2;  
+            end
+         
+        % eyes within 2nd object boundaries
+        elseif eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{1,4}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{1,4}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{1,4}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{1,4}(1,4)
+            
+            if PDS.data.correctObject{iTrial} == 2
+                % correct
+                eyePosProp{iTrial}(jSample,1) = 1;  
+                
+            elseif PDS.data.correctObject{iTrial} == 1
+                % incorrect (FA)
+                eyePosProp{iTrial}(jSample,1) = 2;  
+            end
+        
+        else  % eyes in neither
         eyePosProp{iTrial}(jSample,1) = 0;  
-        
         end
     end
     
