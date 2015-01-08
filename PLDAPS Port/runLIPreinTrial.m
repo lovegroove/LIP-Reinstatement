@@ -688,7 +688,7 @@ end
                 dv.trial.destRect2 = CenterRectOnPointd(dv.trial.baseRect, dv.trial.object2loc(1), dv.trial.object2loc(2)); %Set size and location
                 
                 % Save correct object and location
-                dv.trial.objectLocs = {dv.trial.placedObjects{1}, dv.trial.placedObjects{2}; dv.trial.destRect1, dv.trial.destRect2};
+                dv.trial.objectLocs = {dv.trial.placedObjects{1}, dv.trial.placedObjects{2}, dv.trial.destRect1, dv.trial.destRect2, dv.trial.correctObject}; % [correctObj, foilObj, loc1, loc2] locations are random by this point so we don't know which is which, added dv.trial.correctObject to a column here
                 
             end % end trial type if
             

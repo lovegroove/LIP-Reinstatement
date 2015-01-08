@@ -36,7 +36,7 @@ for iTrial = 1:n
     sampleLen = length(eyePosState{iTrial});
     
     for jSample = 1:sampleLen
-        % eyes within correct object boundaries
+        % eyes within correct object boundaries  #### changing array structure of objlocs, so must update!!!!! and also check which destRect is actually right!!!!!
         if eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{2,1}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{2,1}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{2,1}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{2,1}(1,4)
             
         eyePosProp{iTrial}(jSample,1) = 1;    
@@ -106,7 +106,7 @@ pcTrials = length(find(relativeMatch > .5)) / length(relativeMatch);
 
 figure;
 % Total viewing time in a session
-relativeNonmatchTime = dv.pa.probeTime - (relativeMatchTime + prop0Time); %?????? can't have negatives
+relativeNonmatchTime = dv.pa.probeTime - (relativeMatchTime + prop0Time); %?????? can't have negatives???????????????????????????????????????
 y = [relativeMatchTime relativeNonmatchTime prop0Time];
 subplot(221), h = barwitherr(std(y),mean(y));
 title(sprintf('Total Viewing time - %s', dv.subj)) 
