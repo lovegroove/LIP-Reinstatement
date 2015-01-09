@@ -2,151 +2,147 @@
 % PDS.eyepos = [x,y,trialTime, trialState], each cell from a trial
 % PDS.data.eyeposloop is the same i think
 % dv.states.SHOWPROBE = 11;
-
-format longg
-
-eyePos = PDS.eyepos(strcmp(PDS.trialType,'test'));
-objLocs = PDS.data.objectLocs(strcmp(PDS.trialType,'test'));
-
-%PDS.data.correctObject
-
-state = dv.states.SHOWPROBE; %only the eyePos during memory probe
-
-% NOTE: Double check that the objlocs always have the correct target first in the array!!!!!!!!!!!!!!!!!!!! 
-
-n = length(eyePos);
-eyePosState = cell(1,n);
-eyePosProp = cell(1,n);
-emptyCells = zeros(n,1);
-firstSaccadeSample = zeros(n,1);
-firstSaccadeTimeInState = zeros(n,1);
-firstSaccadeStatus = zeros(n,1);
-relativeMatch = zeros(n,1);
-relativeMatchTime = zeros(n,1);
-
-% save these as awe go???
-prop1 = zeros(n,1);
-prop2 = zeros(n,1);
-prop0 = zeros(n,1);
-prop1Time = zeros(n,1);
-prop2Time = zeros(n,1);
-prop0Time = zeros(n,1);
-
-for iTrial = 1:n
+% objLocs = % [correctObj, foilObj, loc1, loc2, correctLoc]
+% PDS.data.correctObject(iTrial)
+   
+    format longg
     
-    eyePosState{iTrial} = eyePos{iTrial}(eyePos{iTrial}(:,4)==state,:); % only eye position during a certain state
-    sampleLen = length(eyePosState{iTrial});
+    eyePos = PDS.eyepos(strcmp(PDS.trialType,'test'));
+    objLocs = PDS.data.objectLocs(strcmp(PDS.trialType,'test'));
     
-    for jSample = 1:sampleLen
-        % eyes within 1st object boundaries  
-        if eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{1,3}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{1,3}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{1,3}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{1,3}(1,4)
+    state = dv.states.SHOWPROBE; %only the eyePos during memory probe (just in case we want to switch what state we are analyzing)
+    
+    % NOTE: Double check that the foil obj is randomly paired with each stimulus each trial
+    
+    % NOTE: zeros in cells in eyePosProp are from break fixation, there are no eye positions during the show probe state then
+    
+    n = length(eyePos);
+    eyePosState = cell(1,n);
+    eyePosProp = cell(1,n);
+    emptyCells = zeros(n,1);
+    firstSaccadeSample = zeros(n,1);
+    firstSaccadeTimeInState = zeros(n,1);
+    firstSaccadeStatus = zeros(n,1);
+    relativeMatchTime = zeros(n,1);
+    propMatchTime = zeros(n,1);
+    propFoilTime = zeros(n,1);
+    propNeitherTime = zeros(n,1);
+    
+    for iTrial = 1:n
         
-            if PDS.data.correctObject{iTrial} == 1
-                % correct
-                eyePosProp{iTrial}(jSample,1) = 1;  
-                
-            elseif PDS.data.correctObject{iTrial} == 2
-                % incorrect (FA)
-                eyePosProp{iTrial}(jSample,1) = 2;  
-            end
-         
-        % eyes within 2nd object boundaries
-        elseif eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{1,4}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{1,4}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{1,4}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{1,4}(1,4)
-            
-            if PDS.data.correctObject{iTrial} == 2
-                % correct
-                eyePosProp{iTrial}(jSample,1) = 1;  
-                
-            elseif PDS.data.correctObject{iTrial} == 1
-                % incorrect (FA)
-                eyePosProp{iTrial}(jSample,1) = 2;  
-            end
+        eyePosState{iTrial} = eyePos{iTrial}(eyePos{iTrial}(:,4)==state,:); % only eye position during a certain state
+        sampleLen = length(eyePosState{iTrial});
         
-        else  % eyes in neither
-        eyePosProp{iTrial}(jSample,1) = 0;  
+        for jSample = 1:sampleLen
+            % eyes within 1st object boundaries
+            if eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{1,3}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{1,3}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{1,3}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{1,3}(1,4)
+                
+                if objLocs{iTrial}{1,5} == 1
+                    % correct
+                    eyePosProp{iTrial}(jSample,1) = 1;
+                    
+                elseif objLocs{iTrial}{1,5} == 2
+                    % incorrect (FA)
+                    eyePosProp{iTrial}(jSample,1) = 2;
+                end
+                
+                % eyes within 2nd object boundaries
+            elseif eyePosState{iTrial}(jSample,1) >= objLocs{iTrial}{1,4}(1,1) && eyePosState{iTrial}(jSample,1) <= objLocs{iTrial}{1,4}(1,3) && eyePosState{iTrial}(jSample,2) >= objLocs{iTrial}{1,4}(1,2) && eyePosState{iTrial}(jSample,2) <= objLocs{iTrial}{1,4}(1,4)
+                
+                if objLocs{iTrial}{1,5} == 2
+                    % correct
+                    eyePosProp{iTrial}(jSample,1) = 1;
+                    
+                elseif objLocs{iTrial}{1,5} == 1
+                    % incorrect (FA)
+                    eyePosProp{iTrial}(jSample,1) = 2;
+                end
+                
+            else  % eyes in neither
+                eyePosProp{iTrial}(jSample,1) = 0;
+            end
         end
+        
+        % flag empty cells due to break fixation
+        emptyCells(iTrial) = isempty(eyePosProp{iTrial}); % don't really need anymore, is this still useful?
+        
+        
+        if all(eyePosProp{iTrial}(:)==0) % to deal with weird all zero cell
+            eyePosProp{iTrial} = [];
+        end
+        
+        if ~isempty(eyePosProp{iTrial}) 
+            
+            % first saccade
+            firstSaccadeSample(iTrial) = find(eyePosProp{iTrial} ~= 0,1);
+            % time of first saccade
+            eyePosStateTime = eyePosState{iTrial}(:,3);
+            firstSaccadeTimeInState(iTrial) = eyePosStateTime(firstSaccadeSample(iTrial)) - eyePosStateTime(1);
+            % status of first saccade (location - target or foil)
+            firstSaccadeStatus(iTrial) = eyePosProp{iTrial}(firstSaccadeSample(iTrial));
+            
+            %%%%%%%%%%%%%%%%%%%%%%
+            
+            % relative viewing
+            sampleTime = (eyePosStateTime(end) - eyePosStateTime(1)) / length(eyePosStateTime);
+            propMatchTime(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 1)); % why are these all the same??
+            propFoilTime(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 2));
+            propNeitherTime(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 0));
+            relativeMatchTime(iTrial) = propMatchTime(iTrial) / (propMatchTime(iTrial) + propFoilTime(iTrial));
+        else
+            firstSaccadeSample(iTrial) = NaN;
+            firstSaccadeTimeInState(iTrial) = NaN;
+            firstSaccadeStatus(iTrial) = NaN;
+            propMatchTime(iTrial) = NaN;
+            propFoilTime(iTrial) = NaN;
+            propNeitherTime(iTrial) = NaN;
+            relativeMatchTime(iTrial) = NaN;
+        end
+        
+        
     end
     
-    % flag empty cells due to break fixation
-    emptyCells(iTrial) = isempty(eyePosProp{iTrial});
+    % eliminate NaNs
+    firstSaccadeSample = firstSaccadeSample(~isnan(firstSaccadeSample));
+    firstSaccadeTimeInState = firstSaccadeTimeInState(~isnan(firstSaccadeTimeInState));
+    firstSaccadeStatus = firstSaccadeStatus(~isnan(firstSaccadeStatus));
+    propMatchTime = propMatchTime(~isnan(propMatchTime));
+    propFoilTime = propFoilTime(~isnan(propFoilTime));
+    propNeitherTime = propNeitherTime(~isnan(propNeitherTime));
+    relativeMatchTime = relativeMatchTime(~isnan(relativeMatchTime));
     
-    
-    if ~isempty(eyePosProp{iTrial})
-        % first saccade
-        firstSaccadeSample(iTrial) = find(eyePosProp{iTrial} ~= 0,1);
-        % time of first saccade
-        eyePosStateTime = eyePosState{iTrial}(:,3);
-        firstSaccadeTimeInState(iTrial) = eyePosStateTime(firstSaccadeSample(iTrial)) - eyePosStateTime(1);
-        % status of first saccade (location - target or foil)
-        firstSaccadeStatus(iTrial) = eyePosProp{iTrial}(firstSaccadeSample(iTrial)); 
-        
-        % relative viewing
-        prop1(iTrial) = length(find(eyePosProp{iTrial} == 1)) / length(eyePosProp{iTrial});
-        prop2(iTrial) = length(find(eyePosProp{iTrial} == 2)) / length(eyePosProp{iTrial});
-        prop0(iTrial) = length(find(eyePosProp{iTrial} == 0)) / length(eyePosProp{iTrial});
-        
-        sampleTime = (eyePosStateTime(end) - eyePosStateTime(1)) / length(eyePosStateTime);
-        prop1Time(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 1));
-        prop2Time(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 2));
-        prop0Time(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 0));
-        
-        relativeMatch(iTrial) = prop1(iTrial) / (prop1(iTrial) + prop2(iTrial));
-        relativeMatchTime(iTrial) = prop1Time(iTrial) / (prop1Time(iTrial) + prop2Time(iTrial));
-    else
-        firstSaccadeSample(iTrial) = NaN;
-        firstSaccadeTimeInState(iTrial) = NaN;
-        firstSaccadeStatus(iTrial) = NaN;
-    end
-    
-    
-end
-
-%eyePosProp = eyePosProp(~cellfun('isempty',eyePosProp));  
-
-% eliminate NaNs
-firstSaccadeSample = firstSaccadeSample(~isnan(firstSaccadeSample));
-firstSaccadeTimeInState = firstSaccadeTimeInState(~isnan(firstSaccadeTimeInState));
-firstSaccadeStatus = firstSaccadeStatus(~isnan(firstSaccadeStatus));
-
-
-
-
-%% Analysis
-
 
 %% Plotting
 % percent correct
-pcTrials = length(find(relativeMatch > .5)) / length(relativeMatch);
+pcTrials = length(find(relativeMatchTime > .5)) / length(relativeMatchTime);
 
 figure;
+% Viewing Time
+
 % Total viewing time in a session
-relativeNonmatchTime = dv.pa.probeTime - (relativeMatchTime + prop0Time); %?????? can't have negatives???????????????????????????????????????
-y = [relativeMatchTime relativeNonmatchTime prop0Time];
-subplot(221), h = barwitherr(std(y),mean(y));
-title(sprintf('Total Viewing time - %s', dv.subj)) 
-set(gca,'XTickLabel',{'Matching','Non-matching','Neither'})
+y = [propMatchTime propFoilTime propNeitherTime];
+subplot(2,2,1), h = barwitherr(std(y),mean(y));
+title(sprintf('Total Viewing time - %s', dv.subj))
+set(gca,'XTickLabel',{'Match','Foil','Neither'})
 set(h,'FaceColor','b');
 ylabel('Viewing Time (s)')
-subplot(222), boxplot(y)
+subplot(2,2,2), boxplot(y)
 title(sprintf('Total Viewing time - %s', dv.subj))
 ylabel('Viewing Time (s)')
-xtix = {'Matching','Non-matching','Neither'};
+xtix = {'Match','Foil','Neither'};
 xtixloc = [1 2 3];
 set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
-%  Relative Viewing matched vs. non-matched
-subplot(2,2,3), boxplot(relativeMatch)
-title(sprintf('Proportion of Viewing Time: matching vs. the non-matching, Percent Correct: %0.5g',pcTrials * 100))
-ylabel('Relative Viewing Time: matching vs. the non-matching')
-subplot(2,2,4), hist(relativeMatch)
+%  Relative Viewing TIME match vs. foil
+subplot(2,2,3), boxplot(relativeMatchTime)
+title(sprintf('Relative Viewing Time: match vs. foil, Percent Correct: %0.5g',pcTrials * 100))
+ylabel('Relative Viewing Time: match vs. foil')
+subplot(2,2,4), hist(relativeMatchTime)
 g = findobj(gca,'Type','patch');
 set(g,'FaceColor','b');
-title(sprintf('Relative Viewing Time: matching vs. the non-matching, Percent Correct: %0.5g',pcTrials * 100))
-xlabel('Relative Viewing Time: matching vs. the non-matching')
+title(sprintf('Relative Viewing Time: match vs. foil, Percent Correct: %0.5g',pcTrials * 100))
+xlabel('Relative Viewing Time: match vs. foil')
 ylabel('Number of Trials')
-
-
-
 
 %%
 % RTs
@@ -160,6 +156,7 @@ firstSaccadeTimeInState2 = firstSaccadeTimeInState(end/2+1:end);
 
 
 %% logistic regression on RTs and first saccades
+saccadeRT = [firstSaccadeTimeInState firstSaccadeStatus];
 x = saccadeRT(:,1);
 firstSaccadeStatus(firstSaccadeStatus == 2) = 0; % need a binary variable
 y = firstSaccadeStatus;
