@@ -21,7 +21,7 @@
     eyePosProp = cell(1,n);
     emptyCells = zeros(n,1);
     firstSaccadeSample = zeros(n,1);
-    firstSaccadeTimeInState = zeros(n,1);
+    firstSaccadeTime = zeros(n,1);
     firstSaccadeStatus = zeros(n,1);
     relativeMatchTime = zeros(n,1);
     propMatchTime = zeros(n,1);
@@ -76,8 +76,8 @@
             % first saccade
             firstSaccadeSample(iTrial) = find(eyePosProp{iTrial} ~= 0,1);
             % time of first saccade
-            eyePosStateTime = eyePosState{iTrial}(:,3);
-            firstSaccadeTimeInState(iTrial) = eyePosStateTime(firstSaccadeSample(iTrial)) - eyePosStateTime(1);
+            eyePosStateTime = eyePosState{iTrial}(:,3); % time from beginning of trial
+            firstSaccadeTime(iTrial) = eyePosStateTime(firstSaccadeSample(iTrial)) - eyePosStateTime(1);
             % status of first saccade (location - target or foil)
             firstSaccadeStatus(iTrial) = eyePosProp{iTrial}(firstSaccadeSample(iTrial));
             
@@ -91,7 +91,7 @@
             relativeMatchTime(iTrial) = propMatchTime(iTrial) / (propMatchTime(iTrial) + propFoilTime(iTrial));
         else
             firstSaccadeSample(iTrial) = NaN;
-            firstSaccadeTimeInState(iTrial) = NaN;
+            firstSaccadeTime(iTrial) = NaN;
             firstSaccadeStatus(iTrial) = NaN;
             propMatchTime(iTrial) = NaN;
             propFoilTime(iTrial) = NaN;
@@ -104,7 +104,7 @@
     
     % eliminate NaNs
     firstSaccadeSample = firstSaccadeSample(~isnan(firstSaccadeSample));
-    firstSaccadeTimeInState = firstSaccadeTimeInState(~isnan(firstSaccadeTimeInState));
+    firstSaccadeTime = firstSaccadeTime(~isnan(firstSaccadeTime));
     firstSaccadeStatus = firstSaccadeStatus(~isnan(firstSaccadeStatus));
     propMatchTime = propMatchTime(~isnan(propMatchTime));
     propFoilTime = propFoilTime(~isnan(propFoilTime));
@@ -112,7 +112,7 @@
     relativeMatchTime = relativeMatchTime(~isnan(relativeMatchTime));
     
 
-%% Plotting
+%% Plotting - NOTE I'm currently rewriting ploting variables like x and y
 % percent correct
 pcTrials = length(find(relativeMatchTime > .5)) / length(relativeMatchTime);
 
@@ -144,32 +144,36 @@ title(sprintf('Relative Viewing Time: match vs. foil, Percent Correct: %0.5g',pc
 xlabel('Relative Viewing Time: match vs. foil')
 ylabel('Number of Trials')
 
-%%
-% RTs
-saccadeRT = [firstSaccadeTimeInState firstSaccadeStatus];
-anova1(saccadeRT(:,1),saccadeRT(:,2))
+%% Reaction Times
+% RTs Anova
+[P,ANOVATAB,STATS] = anova1(firstSaccadeTime, firstSaccadeStatus);
+title(sprintf('Reaction Time of First Saccade - Subject: %s, F = %0.5g', dv.subj,ANOVATAB{2,5}))
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+ylabel('Reaction Time (s)')
 
 
-firstSaccadeTimeInState = sort(firstSaccadeTimeInState);  % sorting we lose what the 'status' is
-firstSaccadeTimeInState1 = firstSaccadeTimeInState(1:end/2);
-firstSaccadeTimeInState2 = firstSaccadeTimeInState(end/2+1:end);
-
-
-%% logistic regression on RTs and first saccades
-saccadeRT = [firstSaccadeTimeInState firstSaccadeStatus];
-x = saccadeRT(:,1);
+%% logistic regression on RTs and first saccades to Match or Foil 
 firstSaccadeStatus(firstSaccadeStatus == 2) = 0; % need a binary variable
-y = firstSaccadeStatus;
 
 figure;
-[b,dev,stats] = glmfit(x,y,'binomial','link','logit');
-yfit = glmval(b,x,'logit');
+[b,dev,stats] = glmfit(firstSaccadeTime,firstSaccadeStatus,'binomial','link','logit');
+%yfit = glmval(b,x,'logit');
 
-xx = linspace(0,1.8);
+xx = linspace(0,1.8); % or max(firstSaccadeTime)+max(firstSaccadeTime)*.1
 yfit = glmval(b,xx,'logit');
-plot(x,y,'o',xx,yfit,'-')
+plot(firstSaccadeTime,firstSaccadeStatus,'o',xx,yfit,'-')
+title('First Saccades to Match or Foil as a function of Reaction Time')
+ylabel('Probability that the First Saccade will be to the Match rather than the Foil')
+xlabel('Reaction Time')
 
+%% Median Split RTs
 
+%
+firstSaccadeTime = sort(firstSaccadeTime);  % sorting we lose what the 'status' in or out of match
+firstSaccadeTimeInState1 = firstSaccadeTime(1:end/2);
+firstSaccadeTimeInState2 = firstSaccadeTime(end/2+1:end);
 
 
 
