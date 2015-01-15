@@ -5,7 +5,7 @@ function dv = liprein(dv)
 
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
-dv.filePaths = 'rig2'; % set here rather than in loadImages func
+dv.filePaths = 'rig1'; % set here rather than in loadImages func
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
@@ -26,7 +26,7 @@ dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 dv.pass = 1; % ignore eyetracker by flagging fixationHeld as always true
 
 dv.mouse = 0; % just toggle this if you want to use the mouse
-if dv.mouse % this is dumb i know, just to quickly simplify
+if dv.mouse % simplify
     dv.useMouse = 1; % sets cursor to eyes via pdsGetEyePosition func
     dv.showMouse = 1;
 else

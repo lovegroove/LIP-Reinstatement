@@ -47,6 +47,15 @@ switch dv.filePaths
         dv.fileInfo.objectFormat = 'tif';
         dv.fileInfo.sceneFormat = 'jpg';
         
+    case 'rig1'
+        % Sets Paths
+        dv.fileInfo.objectPath = '/Users/monkeyrig/PLDAPS/huklabBasics/LIP Reinstatement/lipreinst_stimuli/shapes/bow/';  % different slash on Macs
+        dv.fileInfo.scenePath = '/Users/monkeyrig/PLDAPS/huklabBasics/LIP Reinstatement/lipreinst_stimuli/scenemodel/natural40/';
+        
+        % File formats
+        dv.fileInfo.objectFormat = 'tif';
+        dv.fileInfo.sceneFormat = 'jpg';
+        
     case 'rig2'
         % Sets Paths
         dv.fileInfo.objectPath = '/Users/huklab/PLDAPS/huklabBasics/LIP-Reinstatement/lipreinst_stimuli/shapes/bow/';  % different slash on Macs
