@@ -47,6 +47,16 @@ switch dv.filePaths
         dv.fileInfo.objectFormat = 'tif';
         dv.fileInfo.sceneFormat = 'jpg';
         
+    case 'rig2'
+        % Sets Paths
+        dv.fileInfo.objectPath = '/Users/huklab/PLDAPS/huklabBasics/LIP-Reinstatement/lipreinst_stimuli/shapes/bow/';  % different slash on Macs
+        dv.fileInfo.scenePath = '/Users/huklab/PLDAPS/huklabBasics/LIP-Reinstatement/lipreinst_stimuli/scenemodel/natural40/';
+        
+        % File formats
+        dv.fileInfo.objectFormat = 'tif';
+        dv.fileInfo.sceneFormat = 'jpg';
+        
+        
 end
 % Get Images from directories
 objectImages = dir([dv.fileInfo.objectPath '*.' dv.fileInfo.objectFormat]); 
@@ -61,7 +71,6 @@ sceneImages = dir([dv.fileInfo.scenePath '*.' dv.fileInfo.sceneFormat]);
 % sceneImages_mask = randperm(length(sceneImages));
 % objectImages_mask = datasample(repmat(randperm(length(objectImages)),1,(length(sceneImages) / length(objectImages))),length(sceneImages),'Replace',false);
 
-% Eliminating use of datasample because this might be having an aversive effect on randomization
 sceneImages_mask = randperm(length(sceneImages));
 objectImages_mask = repmat(randperm(length(objectImages)),1,(length(sceneImages) / length(objectImages)));
 objectImages_mask = objectImages_mask(randperm(length(objectImages_mask)));
@@ -84,7 +93,7 @@ end
 
 pairOrderTemp = cell(numel(dv.finish),4);
 pairOrderTemp = datasample(dv.pairOrder,size(dv.pairOrder,1),1,'replace',false);
-for i = 1:dv.finish / size(dv.pairOrder,1)
+for i = 1:(dv.finish / size(dv.pairOrder,1))
     pairOrderRep = datasample(dv.pairOrder,size(dv.pairOrder,1),1,'replace',false);
     pairOrderTemp = vertcat(pairOrderTemp, pairOrderRep);
 end

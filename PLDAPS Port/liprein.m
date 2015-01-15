@@ -5,7 +5,7 @@ function dv = liprein(dv)
 
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
-dv.filePaths = 'shopRig'; % set here rather than in loadImages func
+dv.filePaths = 'rig2'; % set here rather than in loadImages func
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
@@ -23,7 +23,7 @@ dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 %-------------------------------------------------------------------------%
 % Options - both of these must be flagged if you want to skip eyetracker
 % completely and have it run right
-dv.pass = 0; % ignore eyetracker by flagging fixationHeld as always true
+dv.pass = 1; % ignore eyetracker by flagging fixationHeld as always true
 
 dv.mouse = 0; % just toggle this if you want to use the mouse
 if dv.mouse % this is dumb i know, just to quickly simplify
