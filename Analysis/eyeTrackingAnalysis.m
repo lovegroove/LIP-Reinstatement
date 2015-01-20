@@ -27,6 +27,7 @@
     propMatchTime = zeros(n,1);
     propFoilTime = zeros(n,1);
     propNeitherTime = zeros(n,1);
+    relativeRatio = zeros(n,1);
     
     for iTrial = 1:n
         
@@ -89,6 +90,7 @@
             propFoilTime(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 2));
             propNeitherTime(iTrial) = sampleTime * length(find(eyePosProp{iTrial} == 0));
             relativeMatchTime(iTrial) = propMatchTime(iTrial) / (propMatchTime(iTrial) + propFoilTime(iTrial));
+            relativeRatio(iTrial) = propMatchTime(iTrial) / propFoilTime(iTrial);
         else
             firstSaccadeSample(iTrial) = NaN;
             firstSaccadeTime(iTrial) = NaN;
@@ -97,6 +99,7 @@
             propFoilTime(iTrial) = NaN;
             propNeitherTime(iTrial) = NaN;
             relativeMatchTime(iTrial) = NaN;
+            relativeRatio(iTrial) = NaN;
         end
         
         
@@ -110,7 +113,7 @@
     propFoilTime = propFoilTime(~isnan(propFoilTime));
     propNeitherTime = propNeitherTime(~isnan(propNeitherTime));
     relativeMatchTime = relativeMatchTime(~isnan(relativeMatchTime));
-    
+    relativeRatio = relativeRatio(~isnan(relativeRatio));
 
 %% Plotting - NOTE I'm currently rewriting ploting variables like x and y
 % percent correct
@@ -144,6 +147,14 @@ title(sprintf('Relative Viewing Time: match vs. foil, Percent Correct: %0.5g',pc
 xlabel('Relative Viewing Time: match vs. foil')
 ylabel('Number of Trials')
 
+
+%% Ratio Index
+figure;
+hist(relativeRatio)
+title('Ratio of Viewing Time: (=1 match=foil, >1 >match)')
+xlabel('Ratio of Viewing Time: match vs. foil')
+ylabel('Number of Trials')
+
 %% Reaction Times
 % RTs Anova
 [P,ANOVATAB,STATS] = anova1(firstSaccadeTime, firstSaccadeStatus);
@@ -155,7 +166,7 @@ ylabel('Reaction Time (s)')
 
 
 %% logistic regression on RTs and first saccades to Match or Foil 
-firstSaccadeStatus(firstSaccadeStatus == 2) = 0; % need a binary variable
+firstSaccadeStatus(firstSaccadeStatus == 2) = 0; % need a binary variable (after you do this, you can't go back and execute the previous cell)
 
 figure;
 [b,dev,stats] = glmfit(firstSaccadeTime,firstSaccadeStatus,'binomial','link','logit');
@@ -170,11 +181,24 @@ xlabel('Reaction Time')
 
 %% Median Split RTs
 
-%
-firstSaccadeTime = sort(firstSaccadeTime);  % sorting we lose what the 'status' in or out of match
-firstSaccadeTimeInState1 = firstSaccadeTime(1:end/2);
-firstSaccadeTimeInState2 = firstSaccadeTime(end/2+1:end);
+[y,ind] = sort(firstSaccadeTime);
 
+fsStat = firstSaccadeStatus(ind);
+
+y1 = y(1:end/2);
+y2 = y(end/2+1:end);
+
+fsStat1 = fsStat(1:end/2);
+fsStat2 = fsStat(end/2+1:end);
+% look at the mean and variance
+
+%% Save
+
+%publish func or export_fig (needs ghostscript)
+% add date
+export_fig dv.subj Summary -pdf -append
+
+publish(dv.subj, 'pdf')
 
 
 
