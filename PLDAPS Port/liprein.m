@@ -9,6 +9,8 @@ dv.filePaths = 'rig1'; % set here rather than in loadImages func
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
+dv.chooseStimSet = 1; % IMPORTANT (boolean)
+
 dv.singleSession = 1;
 dv.pa.singleSessionStudy = 40;
 dv.pa.singleSessionTest = 80;
@@ -38,9 +40,12 @@ end
 % Don't forget to CHANGE FILE PATHS on other rigs
 % Load images function - currently calls new pairs on every "new" session
 % So remember that!
-%****************** 
-if dv.newsession 
-dv = loadImages(dv);
+%******************
+if dv.chooseStimSet
+    load(fullfile(dv.fileInfo.savePath,'dag26-Jan-2015.mat')) % **** Make sure this works with file path *****
+    dv.pairOrder = pairOrder;
+elseif dv.newsession
+    dv = loadImages(dv);
 end
 %*******************
 %-------------------------------------------------------------------------%

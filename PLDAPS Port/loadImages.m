@@ -42,6 +42,7 @@ switch dv.filePaths
         % Sets Paths
         dv.fileInfo.objectPath = '/Users/huklab/ELH/Stimuli/shapes/bow/';  % different slash on Macs
         dv.fileInfo.scenePath = '/Users/huklab/ELH/Stimuli/natural40/';
+        dv.fileInfo.savePath = '/Users/huklab/ELH/Stimuli/';
         
         % File formats
         dv.fileInfo.objectFormat = 'tif';
@@ -51,6 +52,7 @@ switch dv.filePaths
         % Sets Paths
         dv.fileInfo.objectPath = '/Users/monkeyrig/PLDAPS/huklabBasics/LIP Reinstatement/lipreinst_stimuli/shapes/bow/';  % different slash on Macs
         dv.fileInfo.scenePath = '/Users/monkeyrig/PLDAPS/huklabBasics/LIP Reinstatement/lipreinst_stimuli/scenemodel/natural40/';
+        dv.fileInfo.savePath = '/Users/monkeyrig/PLDAPS/huklabBasics/LIP Reinstatement/lipreinst_stimuli/';
         
         % File formats
         dv.fileInfo.objectFormat = 'tif';
@@ -60,6 +62,7 @@ switch dv.filePaths
         % Sets Paths
         dv.fileInfo.objectPath = '/Users/huklab/PLDAPS/huklabBasics/LIP-Reinstatement/lipreinst_stimuli/shapes/bow/';  % different slash on Macs
         dv.fileInfo.scenePath = '/Users/huklab/PLDAPS/huklabBasics/LIP-Reinstatement/lipreinst_stimuli/scenemodel/natural40/';
+        dv.fileInfo.savePath = '/Users/huklab/PLDAPS/huklabBasics/LIP-Reinstatement/lipreinst_stimuli/';
         
         % File formats
         dv.fileInfo.objectFormat = 'tif';
@@ -112,6 +115,10 @@ dv.pairOrder = pairOrderTemp;
 % Attach Session ID
 sessionID = repmat(cellstr(dv.pref.sfile), length(dv.pairOrder), 1); % is dv.finish or the +40 going to be a problem here?
 dv.pairOrder = horzcat(dv.pairOrder, sessionID);
+
+% Save .mat file in case you want a specfic set of pairings later
+saveFile = [dv.subj date];
+save(fullfile(dv.fileInfo.savePath, saveFile),'-struct','dv','pairOrder'); 
 
 end
 
