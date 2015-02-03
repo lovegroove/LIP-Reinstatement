@@ -10,7 +10,7 @@
     eyePos = PDS.eyepos(strcmp(PDS.trialType,'test'));
     objLocs = PDS.data.objectLocs(strcmp(PDS.trialType,'test'));
     
-    state = dv.states.SHOWPROBE; %only the eyePos during memory probe (just in case we want to switch what state we are analyzing)
+    state = dv.states.SHOWPROBE; %only the eyePos during memory probe (just in case we want to switch what state we are analyzing, BUT the areas where the shapes are will be different in other states of the trial)
     
     % NOTE: Double check that the foil obj is randomly paired with each stimulus each trial
     
@@ -148,11 +148,17 @@ xlabel('Relative Viewing Time: match vs. foil')
 ylabel('Number of Trials')
 
 
-%% Ratio Index
+%% Ratio Index - a lot of divide by zero!!!!
 figure;
-hist(relativeRatio)
+hist(log(relativeRatio))
 title('Ratio of Viewing Time: (=1 match=foil, >1 >match)')
-xlabel('Ratio of Viewing Time: match vs. foil')
+xlabel('(Log) Ratio of Viewing Time: match vs. foil')
+ylabel('Number of Trials')
+
+figure;
+hist((1 - relativeRatio))
+title('Index of Viewing Time')
+xlabel('Index of Viewing Time: match vs. foil')
 ylabel('Number of Trials')
 
 %% Reaction Times
@@ -179,6 +185,13 @@ title('First Saccades to Match or Foil as a function of Reaction Time')
 ylabel('Probability that the First Saccade will be to the Match rather than the Foil')
 xlabel('Reaction Time')
 
+
+%% Per trial time course of relative viewing 
+
+
+
+
+
 %% Median Split RTs
 
 [y,ind] = sort(firstSaccadeTime);
@@ -191,6 +204,182 @@ y2 = y(end/2+1:end);
 fsStat1 = fsStat(1:end/2);
 fsStat2 = fsStat(end/2+1:end);
 % look at the mean and variance
+
+
+%% Pupil Size (or edf.gaze.pupil using the mgl toolbox)
+% percent signal change (change from average)
+% samples
+% PDS.data.eyelinkSampleBuffer{1}(12,:)
+% -32768 = missing data
+% what about zeros
+
+
+% Pupil Size during test
+elSamples = PDS.data.eyelinkSampleBuffer(strcmp(PDS.trialType,'test'));
+n = length(elSamples);
+pupilSize = cell(1,n);
+
+% which eye - got row from el manual
+if strcmp(dv.el.EYE_USED, 'LEFT')
+    eyeUsed = 12;
+elseif strcmp(dv.el.EYE_USED, 'RIGHT')
+    eyeUsed = 13;
+else
+    error('Neither right eye nor left?')
+end
+
+for i = 1:n
+    pupilSize{i} = elSamples{i}(eyeUsed,:);
+    % Get rid of missing data and zeros
+    pupilSize{i} = pupilSize{i}(pupilSize{i} > 0);
+    
+end
+
+n = length(pupilSize); % new pupilSize length
+pupilSizeDev = cell(1,n);
+pupilSizeAbsDev = cell(1,n);
+pcSigChan = cell(1,n);
+
+for i = 1:n
+    % deviations from the mean
+    pupilSizeDev{i} = pupilSize{i} - mean(pupilSize{i});
+    pupilSizeAbsDev{i} = abs(pupilSize{i} - mean(pupilSize{i}));
+    
+    %pcSigChan{i} = (pupilSize{i} / mean(pupilSize{i})); % how to do this right? * 100 doesn't seem right
+    
+end
+
+%%
+% getting pupil size during probe state
+probeStartTimes = PDS.timing.timeShowProbeStart(strcmp(PDS.trialType,'test')); % zeros in cells are break fixation trials that never went to the probe state (remove here and in pupil size data)
+probeStartms = cellfun(@(x) x * 1000, probeStartTimes); % convert to ms
+
+ % remove trials that the subject never made it to the probe state
+empInd = cellfun(@isempty, eyePosProp);
+chooseIndex = 2; % which index do you want to use to remove trials? 1 = zeros in probe state, 2 = empty cells in eye positions 
+switch chooseIndex
+    case 1
+        pupilSizeDev(:,probeStartms==0) = [];
+        pupilSizeAbsDev(:,probeStartms==0) = []; 
+        probeStartms = probeStartms(probeStartms~=0); 
+    case 2
+        pupilSizeDev(:,empInd==1) = [];
+        pupilSizeAbsDev(:,empInd==1) = []; 
+        probeStartms(empInd==1) = []; 
+end
+
+n = length(probeStartms);
+psDevProbe = cell(1,n);
+psAbsDevProbe = cell(1,n);
+for i = 1:n
+    probeStart = round(probeStartms(i));
+    probeEnd = probeStart + (dv.pa.probeTime * 1000); % convert to ms
+    psDevProbe{i} = pupilSizeDev{i}(probeStart:probeEnd);
+    psAbsDevProbe{i} = pupilSizeAbsDev{i}(probeStart:probeEnd);
+end
+
+% Means
+meanPSDevProbe = cellfun(@mean, psDevProbe);
+meanPSAbsDevProbe = cellfun(@mean, psAbsDevProbe);
+
+%% Plotting Pupil Size vs. viewing time
+% scatter plot and regression - viewing time of match (and foil and
+% meither) vs. pupil size
+figure;
+subplot(2,2,1), scatter(meanPSDevProbe, propMatchTime'), lsline 
+ylabel('Match Viewing Time (s)')
+xlabel('Changes in Pupil Size (A.U.)')
+subplot(2,2,2), scatter(meanPSDevProbe, relativeMatchTime'), lsline 
+ylabel('Relative viewing time: Match vs. Foil')
+xlabel('Changes in Pupil Size (A.U.)')
+subplot(2,2,3), scatter(meanPSAbsDevProbe, propMatchTime'), lsline 
+ylabel('Match Viewing Time (s)')
+xlabel('Absolute Changes in Pupil Size (A.U.)')
+subplot(2,2,4), scatter(meanPSAbsDevProbe, relativeMatchTime'), lsline
+ylabel('Relative viewing time: Match vs. Foil')
+xlabel('Absolute Changes in Pupil Size (A.U.)')
+
+%% logistic regression pupil size vs. choosing match vs. foil
+
+figure;
+[b,dev,stats] = glmfit(meanPSDevProbe,(relativeMatchTime > .5),'binomial','link','logit');
+xx = linspace(min(meanPSDevProbe)+min(meanPSDevProbe)*.1,max(meanPSDevProbe)+max(meanPSDevProbe)*.1);
+yfit = glmval(b,xx,'logit');
+plot(meanPSDevProbe,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('Viewed Match or Foil more as a function of changes in pupil size')
+ylabel('Probability that the subject will look at the Match more than the Foil')
+xlabel('Changes in Pupil Size (A.U.)')
+
+% absolute changes in pupil size 
+figure;
+[b,dev,stats] = glmfit(meanPSAbsDevProbe,(relativeMatchTime > .5),'binomial','link','logit');
+xx = linspace(min(meanPSAbsDevProbe)+min(meanPSAbsDevProbe)*.1,max(meanPSAbsDevProbe)+max(meanPSAbsDevProbe)*.1);
+yfit = glmval(b,xx,'logit');
+plot(meanPSAbsDevProbe,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('Viewed Match or Foil more as a function of changes in pupil size')
+ylabel('Probability that the subject will look at the Match more than the Foil')
+xlabel('Absolute Changes in Pupil Size (A.U.)')
+
+%%
+% bar graph of pupil size in the three conditons (need just a right or
+% wrong thing)
+
+
+%% ploting pupil size during a particular trial
+trialnum = 44;
+
+%plot(pcSigChang{2})
+
+figure; 
+subplot(121),plot(pupilSizeDev{trialnum})
+title('Deviations in Pupil Size (Mean = 0)')
+xlabel('Time (ms)')
+ylabel('A.U.')
+subplot(122),plot(pupilSizeAbsDev{trialnum})
+title('Absolute deviations in Pupil Size (Mean = 0)')
+xlabel('Time (ms)')
+ylabel('A.U.')
+
+% need percent signal change and meaningful time on the x
+
+% have to figure out timing of each state since we have samples now!!!!!
+% look at intervals of interest and also just draw lines correct times
+% ************ avg over certain windows - probe time and cue and delay
+
+
+%dv.el.srate (sampling rate if we want to replot)
+
+%% Plotting during probe state during a particular trial
+trialnum = 20;
+figure; 
+subplot(121),plot(psDevProbe{trialnum})
+title('Deviations in Pupil Size (Mean = 0)')
+xlabel('Time (ms)')
+ylabel('A.U.')
+subplot(122),plot(psAbsDevProbe{trialnum})
+title('Absolute deviations in Pupil Size (Mean = 0)')
+xlabel('Time (ms)')
+ylabel('A.U.')
+
+
+%% plot all trials for pupil size 
+figure; 
+n = 5; %length(pupilSizeDev);
+for i = 1:n
+subplot(1,n,i),plot(pupilSizeDev{i})
+title('Deviations in Pupil Size (Mean = 0)')
+xlabel('Time (ms)')
+ylabel('A.U.')
+end
+
+
+
+
+
+%% Signal Detection Theory Analysis
+
+%% Heatmaps overlayed on scenes
+
 
 %% Save
 
