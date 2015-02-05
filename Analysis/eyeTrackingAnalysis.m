@@ -249,7 +249,7 @@ for i = 1:n
     
 end
 
-%%
+%% Pupil size during PROBE
 % getting pupil size during probe state
 probeStartTimes = PDS.timing.timeShowProbeStart(strcmp(PDS.trialType,'test')); % zeros in cells are break fixation trials that never went to the probe state (remove here and in pupil size data)
 probeStartms = cellfun(@(x) x * 1000, probeStartTimes); % convert to ms
@@ -285,17 +285,25 @@ meanPSAbsDevProbe = cellfun(@mean, psAbsDevProbe);
 %% Plotting Pupil Size vs. viewing time
 % scatter plot and regression - viewing time of match (and foil and
 % meither) vs. pupil size
+r = corrcoef(meanPSDevProbe, propMatchTime');
 figure;
 subplot(2,2,1), scatter(meanPSDevProbe, propMatchTime'), lsline 
+title(sprintf('Viewing time of match as a function of pupil size, r = %0.5g',r(2)))
 ylabel('Match Viewing Time (s)')
 xlabel('Changes in Pupil Size (A.U.)')
+r = corrcoef(meanPSDevProbe, relativeMatchTime');
 subplot(2,2,2), scatter(meanPSDevProbe, relativeMatchTime'), lsline 
+title(sprintf('Relative Viewing time of match as a function of pupil size, r = %0.5g',r(2)))
 ylabel('Relative viewing time: Match vs. Foil')
 xlabel('Changes in Pupil Size (A.U.)')
+r = corrcoef(meanPSAbsDevProbe, propMatchTime');
 subplot(2,2,3), scatter(meanPSAbsDevProbe, propMatchTime'), lsline 
+title(sprintf('Viewing time of match as a function of absolute change in pupil size, r = %0.5g',r(2)))
 ylabel('Match Viewing Time (s)')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
+r = corrcoef(meanPSAbsDevProbe, relativeMatchTime');
 subplot(2,2,4), scatter(meanPSAbsDevProbe, relativeMatchTime'), lsline
+title(sprintf('Relative viewing time of match as a function of absolute change in pupil size, r = %0.5g',r(2)))
 ylabel('Relative viewing time: Match vs. Foil')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
 
@@ -305,24 +313,109 @@ figure;
 [b,dev,stats] = glmfit(meanPSDevProbe,(relativeMatchTime > .5),'binomial','link','logit');
 xx = linspace(min(meanPSDevProbe)+min(meanPSDevProbe)*.1,max(meanPSDevProbe)+max(meanPSDevProbe)*.1);
 yfit = glmval(b,xx,'logit');
-plot(meanPSDevProbe,(relativeMatchTime > .5),'o',xx,yfit,'-')
-title('Viewed Match or Foil more as a function of changes in pupil size')
+subplot(121), plot(meanPSDevProbe,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('Probability of viewing Match or Foil more as a function of changes in pupil size')
 ylabel('Probability that the subject will look at the Match more than the Foil')
 xlabel('Changes in Pupil Size (A.U.)')
 
 % absolute changes in pupil size 
-figure;
 [b,dev,stats] = glmfit(meanPSAbsDevProbe,(relativeMatchTime > .5),'binomial','link','logit');
 xx = linspace(min(meanPSAbsDevProbe)+min(meanPSAbsDevProbe)*.1,max(meanPSAbsDevProbe)+max(meanPSAbsDevProbe)*.1);
 yfit = glmval(b,xx,'logit');
-plot(meanPSAbsDevProbe,(relativeMatchTime > .5),'o',xx,yfit,'-')
-title('Viewed Match or Foil more as a function of changes in pupil size')
+subplot(122), plot(meanPSAbsDevProbe,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('Probability of viewing Match or Foil more as a function of changes in pupil size')
 ylabel('Probability that the subject will look at the Match more than the Foil')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
 
-%%
-% bar graph of pupil size in the three conditons (need just a right or
-% wrong thing)
+
+%% Boxplots of pupil size changes for match and foil during the probe
+
+figure;
+subplot(121), boxplot(meanPSDevProbe,relativeMatchTime > .5)
+title(sprintf('Pupil Size - %s', dv.subj))
+ylabel('Changes in pupil size (A.U.)')
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+subplot(122), boxplot(meanPSAbsDevProbe,relativeMatchTime > .5)
+title(sprintf('Pupil Size - %s', dv.subj))
+ylabel('Absolute Changes in pupil size (A.U.)')
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+
+%% Pupil size effect during SCENE CUE
+% getting pupil size during cue state
+cueStartTimes = PDS.timing.timeShowCueStart(strcmp(PDS.trialType,'test')); % zeros in cells are break fixation trials that never went to the probe state (remove here and in pupil size data)
+cueStartms = cellfun(@(x) x * 1000, cueStartTimes); % convert to ms
+
+ % remove trials that the subject never made it to the probe state
+empInd = cellfun(@isempty, eyePosProp);
+chooseIndex = 2; % which index do you want to use to remove trials? 1 = zeros in probe state, 2 = empty cells in eye positions 
+switch chooseIndex
+    case 1
+        pupilSizeDev(:,cueStartms==0) = [];
+        pupilSizeAbsDev(:,cueStartms==0) = []; 
+        cueStartms = cueStartms(cueStartms~=0); 
+    case 2
+        pupilSizeDev(:,empInd==1) = [];
+        pupilSizeAbsDev(:,empInd==1) = []; 
+        cueStartms(empInd==1) = []; 
+end
+
+n = length(cueStartms);
+psDevCue = cell(1,n);
+psAbsDevCue = cell(1,n);
+for i = 1:n
+    cueStart = round(cueStartms(i));
+    cueEnd = cueStart + (dv.pa.sceneTime * 1000); % convert to ms
+    psDevCue{i} = pupilSizeDev{i}(cueStart:cueEnd);
+    psAbsDevCue{i} = pupilSizeAbsDev{i}(cueStart:cueEnd);
+end
+
+% Means
+meanPSDevCue = cellfun(@mean, psDevCue);
+meanPSAbsDevCue = cellfun(@mean, psAbsDevCue);
+
+%% logistic regression pupil size DURING SCENE CUE vs. choosing match vs. foil
+
+figure;
+[b,dev,stats] = glmfit(meanPSDevCue,(relativeMatchTime > .5),'binomial','link','logit');
+xx = linspace(min(meanPSDevCue)+min(meanPSDevCue)*.1,max(meanPSDevCue)+max(meanPSDevCue)*.1);
+yfit = glmval(b,xx,'logit');
+subplot(121), plot(meanPSDevCue,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('During Scene Cue')
+ylabel('Probability that the subject will look at the Match more than the Foil')
+xlabel('Changes in Pupil Size (A.U.)')
+
+% absolute changes in pupil size 
+[b,dev,stats] = glmfit(meanPSAbsDevCue,(relativeMatchTime > .5),'binomial','link','logit');
+xx = linspace(min(meanPSAbsDevCue)+min(meanPSAbsDevCue)*.1,max(meanPSAbsDevCue)+max(meanPSAbsDevCue)*.1);
+yfit = glmval(b,xx,'logit');
+subplot(122), plot(meanPSAbsDevCue,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('During Scene Cue')
+ylabel('Probability that the subject will look at the Match more than the Foil')
+xlabel('Absolute Changes in Pupil Size (A.U.)')
+
+%% Boxplots of pupil size changes for match and foil during the SCENE CUE
+
+figure;
+subplot(121), boxplot(meanPSDevCue,relativeMatchTime > .5)
+title(sprintf('Pupil Size during Scene Cue- %s', dv.subj))
+ylabel('Changes in pupil size (A.U.)')
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+subplot(122), boxplot(meanPSAbsDevCue,relativeMatchTime > .5)
+title(sprintf('Pupil Size during Scene Cue - %s', dv.subj))
+ylabel('Absolute Changes in pupil size (A.U.)')
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
 
 
 %% ploting pupil size during a particular trial
@@ -339,6 +432,16 @@ subplot(122),plot(pupilSizeAbsDev{trialnum})
 title('Absolute deviations in Pupil Size (Mean = 0)')
 xlabel('Time (ms)')
 ylabel('A.U.')
+
+
+%%
+% need to plot the mean pupil size across all trials for the time course of
+% trial
+
+
+%pupilSizeMeanTri = cellfun(@mean, pupilSizeDev', 'UniformOutput', false); % want averafe but not in each cell, across cellls perserving vecs
+%UGH
+
 
 % need percent signal change and meaningful time on the x
 
