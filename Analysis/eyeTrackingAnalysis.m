@@ -207,6 +207,7 @@ fsStat2 = fsStat(end/2+1:end);
 
 
 %% Pupil Size (or edf.gaze.pupil using the mgl toolbox)
+
 % percent signal change (change from average)
 % samples
 % PDS.data.eyelinkSampleBuffer{1}(12,:)
@@ -282,7 +283,7 @@ end
 meanPSDevProbe = cellfun(@mean, psDevProbe);
 meanPSAbsDevProbe = cellfun(@mean, psAbsDevProbe);
 
-%% Plotting Pupil Size vs. viewing time
+%% Plotting Pupil Size vs. viewing time during probe
 % scatter plot and regression - viewing time of match (and foil and
 % meither) vs. pupil size
 r = corrcoef(meanPSDevProbe, propMatchTime');
@@ -417,9 +418,41 @@ xtixloc = [1 2];
 set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
 
+% ANOVA
+[P,ANOVATAB,STATS] = anova1(meanPSAbsDevCue, relativeMatchTime > .5);
+title(sprintf('Reaction Time of First Saccade - Subject: %s, F = %0.5g', dv.subj,ANOVATAB{2,5}))
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+ylabel('Reaction Time (s)')
+
+%% Scatter plots - viewing vs pupil size during SCENE CUE
+
+r = corrcoef(meanPSDevCue, propMatchTime');
+figure;
+subplot(2,2,1), scatter(meanPSDevCue, propMatchTime'), lsline 
+title(sprintf('Viewing time of match as a function of pupil size during scene cue, r = %0.5g',r(2)))
+ylabel('Match Viewing Time (s)')
+xlabel('Changes in Pupil Size (A.U.)')
+r = corrcoef(meanPSDevCue, relativeMatchTime');
+subplot(2,2,2), scatter(meanPSDevCue, relativeMatchTime'), lsline 
+title(sprintf('Relative Viewing time of match as a function of pupil size during scene cue, r = %0.5g',r(2)))
+ylabel('Relative viewing time: Match vs. Foil')
+xlabel('Changes in Pupil Size (A.U.)')
+r = corrcoef(meanPSAbsDevCue, propMatchTime');
+subplot(2,2,3), scatter(meanPSAbsDevCue, propMatchTime'), lsline 
+title(sprintf('Viewing time of match as a function of absolute change in pupil size during scene cue, r = %0.5g',r(2)))
+ylabel('Match Viewing Time (s)')
+xlabel('Absolute Changes in Pupil Size (A.U.)')
+r = corrcoef(meanPSAbsDevCue, relativeMatchTime');
+subplot(2,2,4), scatter(meanPSAbsDevCue, relativeMatchTime'), lsline
+title(sprintf('Relative viewing time of match as a function of absolute change in pupil size during scene cue, r = %0.5g',r(2)))
+ylabel('Relative viewing time: Match vs. Foil')
+xlabel('Absolute Changes in Pupil Size (A.U.)')
+
 
 %% ploting pupil size during a particular trial
-trialnum = 44;
+trialnum = 47;
 
 %plot(pcSigChang{2})
 
