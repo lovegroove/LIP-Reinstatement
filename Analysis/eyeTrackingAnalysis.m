@@ -12,8 +12,6 @@
     
     state = dv.states.SHOWPROBE; %only the eyePos during memory probe (just in case we want to switch what state we are analyzing, BUT the areas where the shapes are will be different in other states of the trial)
     
-    % NOTE: Double check that the foil obj is randomly paired with each stimulus each trial
-    
     % NOTE: zeros in cells in eyePosProp are from break fixation, there are no eye positions during the show probe state then
     
     n = length(eyePos);
@@ -188,26 +186,13 @@ xlabel('Reaction Time')
 
 %% Per trial time course of relative viewing 
 
-
-
-
-
-%% Median Split RTs
-
-[y,ind] = sort(firstSaccadeTime);
-
-fsStat = firstSaccadeStatus(ind);
-
-y1 = y(1:end/2);
-y2 = y(end/2+1:end);
-
-fsStat1 = fsStat(1:end/2);
-fsStat2 = fsStat(end/2+1:end);
-% look at the mean and variance
+% But what would you look at through the trial - the relative viewing is
+% only during the probe and constitutes the 'choice'
 
 
 %% Pupil Size (or edf.gaze.pupil using the mgl toolbox)
 
+% we are getting this data from the eyelink sample buffer rather than eyepos
 % percent signal change (change from average)
 % samples
 % PDS.data.eyelinkSampleBuffer{1}(12,:)
@@ -240,7 +225,7 @@ n = length(pupilSize); % new pupilSize length
 pupilSizeDev = cell(1,n);
 pupilSizeAbsDev = cell(1,n);
 pcSigChan = cell(1,n);
-
+pupilSizeZ = cell(1,n);
 for i = 1:n
     % deviations from the mean
     pupilSizeDev{i} = pupilSize{i} - mean(pupilSize{i});
@@ -248,12 +233,27 @@ for i = 1:n
     
     %pcSigChan{i} = (pupilSize{i} / mean(pupilSize{i})); % how to do this right? * 100 doesn't seem right
     
+    % compute Z-score for pupil size (*** makes it run a lot longer)
+    psZtrial = zeros(1,length(pupilSize{i}));
+    for j = 1:length(pupilSize{i})
+        psZtrial(j) = (pupilSize{i}(j) - mean(pupilSize{i})) / std(pupilSize{i});
+    end
+    pupilSizeZ{i} = psZtrial;
+    
 end
 
-%% Pupil size during PROBE
+%% Pupil size during PROBE & CUE
 % getting pupil size during probe state
 probeStartTimes = PDS.timing.timeShowProbeStart(strcmp(PDS.trialType,'test')); % zeros in cells are break fixation trials that never went to the probe state (remove here and in pupil size data)
 probeStartms = cellfun(@(x) x * 1000, probeStartTimes); % convert to ms
+
+% getting pupil size during cue state
+cueStartTimes = PDS.timing.timeShowCueStart(strcmp(PDS.trialType,'test')); % zeros in cells are break fixation trials that never went to the probe state (remove here and in pupil size data)
+cueStartms = cellfun(@(x) x * 1000, cueStartTimes); % convert to ms
+
+% Getting pupil size during delay state
+delayStartTimes = PDS.timing.timeDelayStart(strcmp(PDS.trialType,'test'));
+delayStartms = cellfun(@(x) x * 1000, delayStartTimes);
 
  % remove trials that the subject never made it to the probe state
 empInd = cellfun(@isempty, eyePosProp);
@@ -262,26 +262,103 @@ switch chooseIndex
     case 1
         pupilSizeDev(:,probeStartms==0) = [];
         pupilSizeAbsDev(:,probeStartms==0) = []; 
+        pupilSizeZ(:,probeStartms==0) = []; 
         probeStartms = probeStartms(probeStartms~=0); 
+        
+        pupilSizeDev(:,cueStartms==0) = [];
+        pupilSizeAbsDev(:,cueStartms==0) = []; 
+        pupilSizeZ(:,cueStartms==0) = []; 
+        cueStartms = cueStartms(cueStartms~=0); 
+        
     case 2
         pupilSizeDev(:,empInd==1) = [];
         pupilSizeAbsDev(:,empInd==1) = []; 
+        pupilSizeZ(:,empInd==1) = []; 
         probeStartms(empInd==1) = []; 
+        cueStartms(empInd==1) = []; 
 end
 
 n = length(probeStartms);
 psDevProbe = cell(1,n);
 psAbsDevProbe = cell(1,n);
+psZProbe = cell(1,n);
 for i = 1:n
     probeStart = round(probeStartms(i));
     probeEnd = probeStart + (dv.pa.probeTime * 1000); % convert to ms
     psDevProbe{i} = pupilSizeDev{i}(probeStart:probeEnd);
     psAbsDevProbe{i} = pupilSizeAbsDev{i}(probeStart:probeEnd);
+    psZProbe{i} = pupilSizeZ{i}(probeStart:probeEnd);
+end
+
+n = length(cueStartms);
+psDevCue = cell(1,n);
+psAbsDevCue = cell(1,n);
+psZcue = cell(1,n);
+psZcue2probeEnd = cell(1,n);
+for i = 1:n
+    cueStart = round(cueStartms(i));
+    cueEnd = cueStart + (dv.pa.sceneTime * 1000); % convert to ms
+    psDevCue{i} = pupilSizeDev{i}(cueStart:cueEnd);
+    psAbsDevCue{i} = pupilSizeAbsDev{i}(cueStart:cueEnd);
+    psZcue{i} = pupilSizeZ{i}(cueStart:cueEnd);
+    psZcue2probeEnd{i} = pupilSizeZ{i}(cueStart:probeEnd); % this might not really get the segment i want
 end
 
 % Means
 meanPSDevProbe = cellfun(@mean, psDevProbe);
 meanPSAbsDevProbe = cellfun(@mean, psAbsDevProbe);
+meanPSZprobe = cellfun(@mean, psZProbe);
+
+meanPSDevCue = cellfun(@mean, psDevCue);
+meanPSAbsDevCue = cellfun(@mean, psAbsDevCue);
+meanPSZcue = cellfun(@mean, psZcue);
+
+%% Pupil Size over the Time Course of the Whole trial
+maxSize = max(cellfun(@numel,pupilSizeZ));    %# Get the maximum vector size
+aFunc = @(x) [x nan(1,maxSize-numel(x))];  %# Create an anonymous function
+psZmat = cellfun(aFunc,pupilSizeZ,'UniformOutput',false);  %# Pad each cell with NaNs
+psZmat = vertcat(psZmat{:});                  %# Vertically concatenate cells
+
+meanPSZ = nanmean(psZmat);
+stdPSZ = nanstd(psZmat);
+
+figure, shadedErrorBar([],meanPSZ,stdPSZ,'-g',1)
+title('Mean Pupil Size')
+xlabel('Time (ms)')
+ylabel('Pupil Size (Normalized)')
+vline(mean(probeStartms), 'b', 'Probe')
+vline(mean(cueStartms), 'b', 'Cue')
+vline(mean(delayStartms), 'b', 'Delay')
+
+psMeanChoseMatch = nanmean(psZmat(relativeMatchTime > .5,:));
+psStdChoseMatch = nanstd(psZmat(relativeMatchTime > .5,:));
+psMeanChoseFoil = nanmean(psZmat(relativeMatchTime < .5,:));
+psStdChoseFoil = nanstd(psZmat(relativeMatchTime < .5,:));
+
+% Fancey figures - comparing match vs foil
+fanceyFigMeans = [psMeanChoseMatch; psMeanChoseFoil];
+fanceyFigStds = [psStdChoseMatch; psStdChoseFoil];
+
+figure('Color',[1 1 1]);
+hold on
+for i = 1:2
+    switch i
+        case {1}
+            color = 'g';
+        case {2}
+            color = 'b';
+    end 
+shadedErrorBar([],fanceyFigMeans(i,:),fanceyFigStds(i,:),color,1) 
+p(i) = shadedErrorBar([],fanceyFigMeans(i,:),fanceyFigStds(i,:),color,1);
+end
+title('Mean Pupil Size')
+legend([p(1,1).mainLine p(1,2).mainLine],'Match','Foil');
+xlabel('Time (ms)')
+ylabel('Pupil Size (Normalized)')
+vline(mean(probeStartms), 'r', 'Probe')
+vline(mean(cueStartms), 'r', 'Cue')
+vline(mean(delayStartms), 'r', 'Delay')
+hold off
 
 %% Plotting Pupil Size vs. viewing time during probe
 % scatter plot and regression - viewing time of match (and foil and
@@ -308,6 +385,21 @@ title(sprintf('Relative viewing time of match as a function of absolute change i
 ylabel('Relative viewing time: Match vs. Foil')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
 
+
+% WITH Z-SCORES
+r = corrcoef(meanPSZprobe, propMatchTime');
+figure;
+subplot(1,2,1), scatter(meanPSZprobe, propMatchTime'), lsline 
+title(sprintf('Viewing time vs. pupil size during the probe, r = %0.5g',r(2)))
+ylabel('Match Viewing Time (s)')
+xlabel('Changes in Pupil Size (Z-Score)')
+r = corrcoef(meanPSZprobe, relativeMatchTime');
+subplot(1,2,2), scatter(meanPSZprobe, relativeMatchTime'), lsline 
+title(sprintf('Relative Viewing time vs. pupil size during the probe, r = %0.5g',r(2)))
+ylabel('Relative viewing time: Match vs. Foil')
+xlabel('Changes in Pupil Size (Z-Score)')
+
+
 %% logistic regression pupil size vs. choosing match vs. foil
 
 figure;
@@ -328,6 +420,16 @@ title('Probability of viewing Match or Foil more as a function of changes in pup
 ylabel('Probability that the subject will look at the Match more than the Foil')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
 
+% With Z-score
+figure;
+[b,dev,stats] = glmfit(meanPSZprobe,(relativeMatchTime > .5),'binomial','link','logit');
+xx = linspace(min(meanPSZprobe)+min(meanPSZprobe)*.1,max(meanPSZprobe)+max(meanPSZprobe)*.1);
+yfit = glmval(b,xx,'logit');
+plot(meanPSZprobe,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('Probability of viewing Match or Foil more as a function of changes in pupil size during the Probe')
+ylabel('Probability that the subject will look at the Match more than the Foil')
+xlabel('Changes in Pupil Size (Z-Score)')
+
 
 %% Boxplots of pupil size changes for match and foil during the probe
 
@@ -346,39 +448,15 @@ xtix = {'Match','Foil'};
 xtixloc = [1 2];
 set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
+% With Z-score
+figure;
+boxplot(meanPSZprobe,relativeMatchTime > .5)
+title(sprintf('Pupil Size - %s', dv.subj))
+ylabel('Changes in pupil size (Z-score)')
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 
-%% Pupil size effect during SCENE CUE
-% getting pupil size during cue state
-cueStartTimes = PDS.timing.timeShowCueStart(strcmp(PDS.trialType,'test')); % zeros in cells are break fixation trials that never went to the probe state (remove here and in pupil size data)
-cueStartms = cellfun(@(x) x * 1000, cueStartTimes); % convert to ms
-
- % remove trials that the subject never made it to the probe state
-empInd = cellfun(@isempty, eyePosProp);
-chooseIndex = 2; % which index do you want to use to remove trials? 1 = zeros in probe state, 2 = empty cells in eye positions 
-switch chooseIndex
-    case 1
-        pupilSizeDev(:,cueStartms==0) = [];
-        pupilSizeAbsDev(:,cueStartms==0) = []; 
-        cueStartms = cueStartms(cueStartms~=0); 
-    case 2
-        pupilSizeDev(:,empInd==1) = [];
-        pupilSizeAbsDev(:,empInd==1) = []; 
-        cueStartms(empInd==1) = []; 
-end
-
-n = length(cueStartms);
-psDevCue = cell(1,n);
-psAbsDevCue = cell(1,n);
-for i = 1:n
-    cueStart = round(cueStartms(i));
-    cueEnd = cueStart + (dv.pa.sceneTime * 1000); % convert to ms
-    psDevCue{i} = pupilSizeDev{i}(cueStart:cueEnd);
-    psAbsDevCue{i} = pupilSizeAbsDev{i}(cueStart:cueEnd);
-end
-
-% Means
-meanPSDevCue = cellfun(@mean, psDevCue);
-meanPSAbsDevCue = cellfun(@mean, psAbsDevCue);
 
 %% logistic regression pupil size DURING SCENE CUE vs. choosing match vs. foil
 
@@ -399,6 +477,17 @@ subplot(122), plot(meanPSAbsDevCue,(relativeMatchTime > .5),'o',xx,yfit,'-')
 title('During Scene Cue')
 ylabel('Probability that the subject will look at the Match more than the Foil')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
+
+% Z-score
+figure;
+[b,dev,stats] = glmfit(meanPSZcue,(relativeMatchTime > .5),'binomial','link','logit');
+xx = linspace(min(meanPSZcue)+min(meanPSZcue)*.1,max(meanPSZcue)+max(meanPSZcue)*.1);
+yfit = glmval(b,xx,'logit');
+plot(meanPSZcue,(relativeMatchTime > .5),'o',xx,yfit,'-')
+title('During Scene Cue')
+ylabel('Probability that the subject will look at the Match more than the Foil')
+xlabel('Changes in Pupil Size (Z-Score)')
+
 
 %% Boxplots of pupil size changes for match and foil during the SCENE CUE
 
@@ -426,6 +515,16 @@ xtixloc = [1 2];
 set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
 ylabel('Reaction Time (s)')
 
+% Z-score
+figure;
+boxplot(meanPSZcue,relativeMatchTime > .5)
+title(sprintf('Pupil Size during Scene Cue- %s', dv.subj))
+ylabel('Changes in pupil size (Z-score)')
+xtix = {'Match','Foil'};
+xtixloc = [1 2];
+set(gca,'XTickMode','auto','XTickLabel',xtix,'XTick',xtixloc);
+
+
 %% Scatter plots - viewing vs pupil size during SCENE CUE
 
 r = corrcoef(meanPSDevCue, propMatchTime');
@@ -450,40 +549,38 @@ title(sprintf('Relative viewing time of match as a function of absolute change i
 ylabel('Relative viewing time: Match vs. Foil')
 xlabel('Absolute Changes in Pupil Size (A.U.)')
 
+% Z-score
+r = corrcoef(meanPSZcue, propMatchTime');
+figure;
+subplot(1,2,1), scatter(meanPSZcue, propMatchTime'), lsline 
+title(sprintf('Viewing time of match as a function of pupil size during scene cue, r = %0.5g',r(2)))
+ylabel('Match Viewing Time (s)')
+xlabel('Changes in Pupil Size (Z-score)')
+r = corrcoef(meanPSZcue, relativeMatchTime');
+subplot(1,2,2), scatter(meanPSZcue, relativeMatchTime'), lsline 
+title(sprintf('Relative Viewing time of match as a function of pupil size during scene cue, r = %0.5g',r(2)))
+ylabel('Relative viewing time: Match vs. Foil')
+xlabel('Changes in Pupil Size (Z-score)')
+
 
 %% ploting pupil size during a particular trial
-trialnum = 47;
+trialnum = 40;
 
 %plot(pcSigChang{2})
 
 figure; 
-subplot(121),plot(pupilSizeDev{trialnum})
+subplot(131),plot(pupilSizeDev{trialnum})
 title('Deviations in Pupil Size (Mean = 0)')
 xlabel('Time (ms)')
 ylabel('A.U.')
-subplot(122),plot(pupilSizeAbsDev{trialnum})
+subplot(132),plot(pupilSizeAbsDev{trialnum})
 title('Absolute deviations in Pupil Size (Mean = 0)')
 xlabel('Time (ms)')
 ylabel('A.U.')
-
-
-%%
-% need to plot the mean pupil size across all trials for the time course of
-% trial
-
-
-%pupilSizeMeanTri = cellfun(@mean, pupilSizeDev', 'UniformOutput', false); % want averafe but not in each cell, across cellls perserving vecs
-%UGH
-
-
-% need percent signal change and meaningful time on the x
-
-% have to figure out timing of each state since we have samples now!!!!!
-% look at intervals of interest and also just draw lines correct times
-% ************ avg over certain windows - probe time and cue and delay
-
-
-%dv.el.srate (sampling rate if we want to replot)
+subplot(133),plot(pupilSizeZ{trialnum})
+title('Deviations in Pupil Size')
+xlabel('Time (ms)')
+ylabel('Changes in Pupil Size (Z-score)')
 
 %% Plotting during probe state during a particular trial
 trialnum = 20;
@@ -509,9 +606,6 @@ ylabel('A.U.')
 end
 
 
-
-
-
 %% Signal Detection Theory Analysis
 
 %% Heatmaps overlayed on scenes
@@ -521,9 +615,9 @@ end
 
 %publish func or export_fig (needs ghostscript)
 % add date
-export_fig dv.subj Summary -pdf -append
-
-publish(dv.subj, 'pdf')
+% export_fig dv.subj Summary -pdf -append
+% 
+% publish(dv.subj, 'pdf')
 
 
 
