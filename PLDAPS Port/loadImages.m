@@ -1,6 +1,10 @@
 function dv = loadImages(dv)
 % dv.filePaths is now set in liprein (the condition file)
 
+% for testing purposes, execute first - comment out normally
+% dv = struct('filePaths','office','finish', 1e3, 'subj','junkMan');
+% dv.pref.sfile = 'test';
+
 switch dv.filePaths
     case 'testingStim'
         % Sets Paths
@@ -68,6 +72,16 @@ switch dv.filePaths
         dv.fileInfo.objectFormat = 'tif';
         dv.fileInfo.sceneFormat = 'jpg';
         
+    case 'office'  
+        % Sets Paths
+        dv.fileInfo.objectPath = '/Users/erichart/Dropbox/lipreinst_stimuli/shapes/bow/';  % different slash on Macs
+        dv.fileInfo.scenePath = '/Users/erichart/Dropbox/lipreinst_stimuli//scenemodel/natural40/';
+        dv.fileInfo.savePath = '/Users/erichart/Dropbox/lipreinst_stimuli/';
+        
+        % File formats
+        dv.fileInfo.objectFormat = 'tif';
+        dv.fileInfo.sceneFormat = 'jpg';
+        
         
 end
 % Get Images from directories
@@ -90,7 +104,7 @@ end
 
 % Proliferate pairings for many trials - 40 is the current size of a
 % stimulus set: 8 shapes, each paired with 5 scenes (Made sure there was no
-% overwriting funny business!)
+% overwriting funny business!) hence weird temp stuff
 
 %pairOrderTemp = cell(numel(dv.finish),4);
 pairOrderTemp = datasample(dv.pairOrder,size(dv.pairOrder,1),1,'replace',false);
