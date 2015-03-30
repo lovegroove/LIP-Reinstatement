@@ -5,11 +5,11 @@ function dv = liprein(dv)
 
 % Trial Function & Trial Type
 dv.trialFunction = 'runLIPreinTrial';
-dv.filePaths = 'rig1'; % set here rather than in loadImages func
+dv.filePaths = 'shopRig'; % set here rather than in loadImages func - 'shopRig','rig1','rig2'
 dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
-dv.chooseStimSet = 1; % IMPORTANT (boolean)
+dv.chooseStimSet = 0; % IMPORTANT (boolean)
 
 dv.singleSession = 1;
 dv.pa.singleSessionStudy = 40;
@@ -17,8 +17,10 @@ dv.pa.singleSessionTest = 80;
 
 dv.pa.strictDelay = 1; %boolean
 
-dv = pdsDefaultTrialStructure(dv); % calls dv = defaultColors(dv) IMPORTANT for assigning CLUT values; current overwriting some defaults too
-Datapixx('Open') % HACK: Must reopen datapixx beacause I'm not using overlay so I can get colors
+% TIME TO MAKE THE ERIC DEFAULT TRIAL STRUCT (make these rig dependent and
+% then you can just choose here in condition file)
+dv = pdsDefaultTrialSetupEric(dv);
+Datapixx('Open') % HACK: Must reopen datapixx beacause I'm not using overlay so I can get colors (move this in default and try to fix it****)
 
 dv.disp.preflipbuffer = 10e-3; % 10 ms preflip (lots of textures to draw), need?
 
@@ -42,6 +44,7 @@ end
 % So remember that!
 %******************
 if dv.chooseStimSet
+    % dv.fileInfo won't exist yet, must mess with this***************
     load(fullfile(dv.fileInfo.savePath,'dag26-Jan-2015.mat')) % **** Make sure this works with file path *****
     dv.pairOrder = pairOrder;
 elseif dv.newsession
@@ -111,15 +114,7 @@ dv.pa.fixCrossColor = [0, 0, 0]; % Fixation cross color
 dv.pa.fpWin = [1.5 1.5]; % x,y radius
 dv.pa.winScale = .2; % scale targwin with eccentricity
 
-% dot sizes for drawing
-dv.pa.eyeW      = 8;    % eye indicator width in pixels
-dv.pa.fixdotW   = 8;    % width of the fixation dot
-dv.pa.targdotW  = 8;    % width of the target dot
-dv.pa.cursorW   = 8;   % cursor width in pixels
-
-
 %% States - dv.states (arbitrary values)
-
 dv.states.START     = 1;
 dv.states.FPON      = 2;
 dv.states.FPHOLD    = 3;
@@ -133,14 +128,6 @@ dv.states.SHOWCUE = 8;
 dv.states.SHOWPAIR = 9;
 dv.states.DELAY = 10;
 dv.states.SHOWPROBE = 11;
-
-%% PsychPort Audio
-dv = pdsAudioSetup(dv);
-
-%% Eyelink toolbox
-% Eyelink sampling rate, max trial length(s)
-dv = pdsEyelinkSetup(dv);
-    
 
 end
 
