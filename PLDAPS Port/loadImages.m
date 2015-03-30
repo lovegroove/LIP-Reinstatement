@@ -40,9 +40,9 @@ switch dv.filePaths
         
     case 'shopRig'
         % Sets Paths
-        dv.fileInfo.objectPath = '/Users/huklab/ELH/Stimuli/shapes/bow/';  % different slash on Macs
-        dv.fileInfo.scenePath = '/Users/huklab/ELH/Stimuli/natural40/';
-        dv.fileInfo.savePath = '/Users/huklab/ELH/Stimuli/';
+        dv.fileInfo.objectPath = '/Users/huklab/PLDAPS/LIP-Reinstatement/lipreinst_stimuli/bow/';  % different slash on Macs
+        dv.fileInfo.scenePath = '/Users/huklab/PLDAPS/LIP-Reinstatement/lipreinst_stimuli/natural40/';
+        dv.fileInfo.savePath = '/Users/huklab/PLDAPS/LIP-Reinstatement/lipreinst_stimuli/';
         
         % File formats
         dv.fileInfo.objectFormat = 'tif';
