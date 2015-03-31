@@ -62,6 +62,10 @@ dv.trial.theta = dv.pa.stimThetas(randi(length(dv.pa.stimThetas)));
 %dv.trial.theta = 100; % angle from center of one object (in degrees) converted to radians in func
 dv = stimLoc(dv);
 
+% Delay timing if random - Overwrites dv.pa.delayTime 
+if dv.useRandomDelay
+dv.pa.delayTime = randi(5)+.25-1; % current range 0.25-4.25 because it will dv.pa.probeCueTime will add .75 
+end
 %-------------------------------------------------------------------------%
 %%% Degrees to pixels %%%
 % We input positions on the screen in degrees of visual angle, but
@@ -316,6 +320,7 @@ if PDS.goodtrial(dv.j) == 1
         PDS.trialType{dv.j} = dv.trialType;
         PDS.timing.timeDelayStart{dv.j} = dv.trial.timeDelayStart;
         PDS.timing.timeShowProbeStart{dv.j} = dv.trial.timeShowProbeStart;
+        PDS.timing.randomDelayLength{dv.j} = dv.pa.delayTime + dv.pa.probeCueTime;
     end
 else
     PDS.timing.timeShowCueStart{dv.j} = 0;
