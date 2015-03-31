@@ -44,8 +44,12 @@ end
 % So remember that!
 %******************
 if dv.chooseStimSet
+<<<<<<< HEAD
     % dv.fileInfo won't exist yet, must mess with this***************
     load(fullfile(dv.fileInfo.savePath,'dag26-Jan-2015.mat')) % **** Make sure this works with file path *****
+=======
+    load(fullfile(dv.fileInfo.savePath,'dag26-Jan-2015.mat')) % **** Make sure this works with file path ***** (this is where you change what stimulus set you want to use) 
+>>>>>>> 72c01f10c68fbfe888eb44a478c2b82ecf1c9b0f
     dv.pairOrder = pairOrder;
 elseif dv.newsession
     dv = loadImages(dv);
