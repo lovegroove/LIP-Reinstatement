@@ -369,8 +369,9 @@ end
 PDS.data.pairs{dv.j} = dv.pairOrder(dv.j,:);  
 PDS.data.objectLocs{dv.j} = dv.trial.objectLocs; 
 
-PDS.breakRestart{dv.j} = dv.trial.breakRestart;
-PDS.nBreaks{dv.j} = dv.trial.nBreaks;
+% depreciated
+% PDS.timing.breakRestart{dv.j} = dv.trial.breakRestart;
+% PDS.timing.nBreaks{dv.j} = dv.trial.nBreaks;
 
 % For a Single Session
 if dv.singleSession && dv.j == dv.pa.singleSessionStudy && strcmp(dv.trialType,'study') %current number of pairs in a block, make this a variable later
@@ -380,6 +381,18 @@ if dv.singleSession && dv.j == dv.pa.singleSessionStudy && strcmp(dv.trialType,'
     
 elseif dv.singleSession && dv.j == dv.pa.singleSessionTest && strcmp(dv.trialType,'test')
     disp('Test Session finished. Thank you!')
+    dv.quit = 2;
+    ShowCursor
+end
+
+% For naive human subject
+if dv.naiveSubj && dv.j == dv.pa.singleSessionStudy
+    disp('Session 1 finished. Please see experimenter to start session 2.')
+    dv.trial.switchTrialType = 1;
+    dv.quit = 1; % could leave this out and make it continuous 
+    ShowCursor
+    elseif dv.naiveSubj && dv.j == dv.pa.singleSessionTest 
+    disp('Session 2 finished. Thank you!')
     dv.quit = 2;
     ShowCursor
 end

@@ -10,10 +10,10 @@ dv.trialType = 'study'; % choose trial type, 'study' or 'test'
 dv.finish = 1e3; % # of trials
 
 dv.chooseStimSet = 0; % IMPORTANT (boolean)
-
-dv.singleSession = 1;
-dv.pa.singleSessionStudy = 40;
-dv.pa.singleSessionTest = 80;
+dv.naiveSubj = 1; % either this OR singleSession should be flagged
+dv.singleSession = 0;
+dv.pa.singleSessionStudy = 5; % (40*8=320) these also apply to naive subj
+dv.pa.singleSessionTest = dv.pa.singleSessionStudy + 5; % (40*4=160)
 
 dv.useRandomDelay = 1;
 dv.pa.strictDelay = 1; %boolean

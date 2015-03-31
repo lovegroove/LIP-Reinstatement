@@ -66,7 +66,9 @@ dv.states.HOLDTARG     = 5;
 dv.states.BREAKFIX  = 7;
 dv.states.TRIALCOMPLETE = 6;
 
+
 %% Eyelink toolbox
+%-------------------------------------------------------------------------%
 dv.useEyelink = 1;
 dv = pdsEyelinkSetup(dv);
     
