@@ -4,8 +4,9 @@ function dv = blobeyetrack(dv)
 
 % condition file
 dv.trialFunction = 'runBlobEyeTrack';
-dv.pass = 1;
-dv.showMouse = 0;
+dv.pass = 0;
+dv.useMouse = 0;
+dv.showMouse = 0; % probably not even needed
 dv.finish = 2; %1e3; % # of trials
 dv.trialTime = 8;      % trial duration in s
 dv.choiceOn = 1; % flag for direction choice (did I implement this yet?)

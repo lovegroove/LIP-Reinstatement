@@ -61,10 +61,10 @@ loopTimes       = zeros(1e4,2);
 %photodiodeTimes = zeros(1e4,2);
 eyepos          = zeros(1e4,4);     % preallocate eye position data
 
-% if dv.pass == 0
-% dv.disp.inputSamplingRate = 240;
-% eyeTimeStep     = 1/dv.disp.inputSamplingRate;
-% end
+if dv.pass == 0
+dv.disp.inputSamplingRate = 240;
+eyeTimeStep     = 1/dv.disp.inputSamplingRate;
+end
 
 %-------------------------------------------------------------------------%
 %%% Degrees to pixels %%%
@@ -240,16 +240,14 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     % FLIP
     vbl = Screen('Flip', dv.disp.ptr, vbl + 0.5*ifi);
     
-    % needed here or after loop
-    Screen('Close', dv.noysTex);  % issue dping this in loop*******????
-    
     %-------------------------------------------------------------------------%
     loopTimes(dv.trial.iLoop, :) = [dv.trial.ttime dv.trial.state];
     dv.trial.iLoop = dv.trial.iLoop + 1;
     
 end % END WHILE LOOP
 
-Screen('Close'); % was necessary in prototype version because of drawing all the textures, need to close offscreen windows
+Screen('Close'); % was necessary
+
 
 PDS.timing.datapixxstoptime(dv.j) = Datapixx('GetTime');
 PDS.timing.trialend(dv.j) = GetSecs- dv.trial.trstart;
@@ -266,6 +264,21 @@ KbQueueFlush();
 
 
  %-------------------------------------------------------------------------%
+ %% Build PDS struct (your data and relevant timings and such) for saving %%
+%-------------------------------------------------------------------------%
+PDS.trialnumber(dv.j)        = dv.j;
+PDS.goodtrial(dv.j)          = dv.trial.good;
+PDS.fpXY(dv.j,:)             = (1/dv.disp.ppd)*dv.trial.fixXY;
+
+PDS.timing.fpon(dv.j,:)      = [dv.trial.timeFpOn dv.trial.frameFpOn];
+PDS.timing.fpentered(dv.j)   = dv.trial.timeFpEntered;
+PDS.timing.fpoff(dv.j,:)     = [dv.trial.timeFpOff     dv.trial.frameFpOff];
+
+PDS.timing.reward{dv.j}      = dv.trial.timeReward(~isnan(dv.trial.timeReward));
+
+PDS.timing.breakfix(dv.j)    = dv.trial.timeBreakFix;
+
+
 % PDS SAVING STUFF
 if dv.pass == 0
     %Eyelink
@@ -316,7 +329,7 @@ PDS.data.dirChoice{dv.j} = dv.dirChoice;
     function dv = dirChoice(dv)
         if dv.trial.state == dv.states.CHOICE
             dv.trial.ttime = GetSecs - dv.trial.trstart; % probably need to record some times
-            Screen(dv.disp.ptr,'DrawText','Is the blob in the right or left half of the box?  You have 3 seconds to respond.',50,50,255); % need good coords*****
+            Screen(dv.disp.ptr,'DrawText','Is the blob in the right or left half of the box?',50,50,255); % need good coords*****
                 %[x,y,buttons] = GetMouse(whichScreen);
                 if dv.trial.firstPressQ(dv.kb.Rarrow)
                     dv.dirChoice = 1; % these will have to be incremented when there are a block of trials
@@ -324,8 +337,6 @@ PDS.data.dirChoice{dv.j} = dv.dirChoice;
                 elseif dv.trial.firstPressQ(dv.kb.Larrow) %or instead dv.trial.firstPressQ(dv.kb.pKey) - whatever the name of the key is****************
                     dv.dirChoice = 2;
                     dv.trial.flagNextTrial = true;
-%                 else
-%                     direcKey = 0;
                 end    
         end
     end
