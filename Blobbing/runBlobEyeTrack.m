@@ -5,7 +5,16 @@ dv = defaultTrialVariables(dv); % setup default trial struct
 
 %-------------------------------------------------------------------------%
 
-% trial variables - MUST UPDATE ALL VARS
+% Set flags
+dv.trial.blobWalkFlag = 1;
+dv.trial.dirChoiceFlag = 1;
+
+% Titrate SNR
+if dv.randSig
+dv.thisSig = dv.sigRang(randi(length(dv.sigRang)));
+end
+
+% trial variables 
  dv.frameRate = round(1./Screen('GetFlipInterval', dv.disp.ptr));
     dv.totFrames = dv.trialTime*dv.frameRate;
     
@@ -15,8 +24,8 @@ dv = defaultTrialVariables(dv); % setup default trial struct
     dv.targGab = dv.cont.*2.*pi.*64*dv.targGab;               % scale a gaus with a sig of 8 has height 1
     dv.gabTex = Screen('MakeTexture', dv.disp.ptr, dv.targGab, [], [], 2);  % store as 32bit texture
 
-% making the noys
-dv.noysNormFac = dv.noysCont*(1/12);
+    % making the noys
+    dv.noysNormFac = dv.noysCont*(1/12);
     dv.theNoys= randn(dv.noysSize);
     dv.theNoys(abs(dv.theNoys)>3)= 3;
     dv.theNoys = dv.theNoys*dv.noysNormFac +0.5; % should put us in 0.25 to 0.75 range
@@ -32,27 +41,17 @@ dv.noysNormFac = dv.noysCont*(1/12);
     dv.targCoords = cumsum(dv.targCoords', 2);  % positions
     dv.targCoords = dv.walkScale.*dv.targCoords./mmax(dv.targCoords);
     
-    % WHAT ABOUT VARS FROM HERE DOWN
-    
     % Move the cursor to the center of the screen
 %     centerX = round(theRect(RectRight)/2);
 %     centerY = round(theRect(RectBottom)/2);
 %     dv.targCoords(1,:) = dv.targCoords(1,:) + centerX;
 %     dv.targCoords(2,:) = dv.targCoords(2,:) + centerY;
 
-    % will this not be the center of the rect no and be the center of the
-    % screen? yes, does it matter?
     dv.targCoords(1,:) = dv.targCoords(1,:) + dv.pa.xCenter;
     dv.targCoords(2,:) = dv.targCoords(2,:) + dv.pa.yCenter;
     SetMouse(dv.pa.xCenter,dv.pa.yCenter);
     HideCursor();
     
-    % Use key bindings from PLDAPS
-%     % Keys
-%     stopKey=KbName('esc');
-%     leftKey=KbName('left');   
-%     rightKey=KbName('right'); 
-
 %-------------------------------------------------------------------------%
 
 % % preallocate data aquisition variables
@@ -167,13 +166,12 @@ while ~dv.trial.flagNextTrial && dv.quit == 0
     [dv.trial.cursorX,dv.trial.cursorY,dv.trial.isMouseButtonDown] = GetMouse;
     
     dv = pdsGetEyePosition(dv); % Eye position or Mouse Position if UseMouse is flagged (within func)
-    %dv = pdsGetEyePosition(dv, updateQueue); % Need this update queue?????????????????
     
     %%% TRIAL STATES %%% dv.trial.state
     %---------------------------------------------------------------------%
     %---------------------------------------------------------------------%
     
-    % trial start states????
+    % Intital fix state ??
     
     
     % Blob tracking
@@ -269,15 +267,14 @@ KbQueueFlush();
 PDS.trialnumber(dv.j)        = dv.j;
 PDS.goodtrial(dv.j)          = dv.trial.good;
 PDS.fpXY(dv.j,:)             = (1/dv.disp.ppd)*dv.trial.fixXY;
-
 PDS.timing.fpon(dv.j,:)      = [dv.trial.timeFpOn dv.trial.frameFpOn];
 PDS.timing.fpentered(dv.j)   = dv.trial.timeFpEntered;
 PDS.timing.fpoff(dv.j,:)     = [dv.trial.timeFpOff     dv.trial.frameFpOff];
-
 PDS.timing.reward{dv.j}      = dv.trial.timeReward(~isnan(dv.trial.timeReward));
-
 PDS.timing.breakfix(dv.j)    = dv.trial.timeBreakFix;
 
+PDS.timing.blobStart{dv.j} = dv.trial.blobWalkStart;
+PDS.timing.dirChoiceStart{dv.j} = dv.trial.dirChoiceStart;
 
 % PDS SAVING STUFF
 if dv.pass == 0
@@ -292,7 +289,14 @@ end
 
 PDS.data.dirChoice{dv.j} = dv.dirChoice;
 
+if dv.targCoords(end-1) < dv.pa.xCenter
+PDS.data.targPosEnd{dv.j} = 2; %left
 
+elseif dv.targCoords(end-1) > dv.pa.xCenter
+    PDS.data.targPosEnd{dv.j} = 1; %right
+else
+    PDS.data.targPosEnd{dv.j} = 0; %exactly equal
+end
 
  %-------------------------------------------------------------------------%
  %%%%%%% INLINE FUNCTIONS: STATES
@@ -301,7 +305,13 @@ PDS.data.dirChoice{dv.j} = dv.dirChoice;
     function dv = blobWalk(dv)
         if dv.trial.state == dv.states.BLOBWALK
             
-            % it's blobbering time! - MUST UPDATE VARS!!!!
+            if dv.trial.blobWalkFlag
+                dv.trial.ttime = GetSecs - dv.trial.trstart;
+                dv.trial.blobWalkStart = dv.trial.ttime;
+                dv.trial.blobWalkFlag = 0;
+            end
+            
+            % it's blobbering time! 
              % Draw NOYS!
             dv.theNoys= randn(dv.noysSize);
             dv.theNoys(abs(dv.theNoys)>3)= 3;
@@ -328,8 +338,14 @@ PDS.data.dirChoice{dv.j} = dv.dirChoice;
 
     function dv = dirChoice(dv)
         if dv.trial.state == dv.states.CHOICE
-            dv.trial.ttime = GetSecs - dv.trial.trstart; % probably need to record some times
-            Screen(dv.disp.ptr,'DrawText','Is the blob in the right or left half of the box?',50,50,255); % need good coords*****
+            
+            if dv.trial.dirChoiceFlag
+                dv.trial.ttime = GetSecs - dv.trial.trstart;
+                dv.trial.dirChoiceStart = dv.trial.ttime;
+                dv.trial.dirChoiceFlag = 0;
+            end
+            
+            Screen(dv.disp.ptr,'DrawText','Is the blob in the right or left half of the box?',(dv.pa.xCenter-180),dv.pa.yCenter,255); % need good coords*****
                 %[x,y,buttons] = GetMouse(whichScreen);
                 if dv.trial.firstPressQ(dv.kb.Rarrow)
                     dv.dirChoice = 1; % these will have to be incremented when there are a block of trials
