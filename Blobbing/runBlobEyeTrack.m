@@ -14,6 +14,10 @@ if dv.randSig
 dv.thisSig = dv.sigRang(randi(length(dv.sigRang)));
 end
 
+% titrate walk speed
+if dv.randStep
+dv.stepSize = dv.stepRang(randi(length(dv.stepRang)));  
+end
 % trial variables 
  dv.frameRate = round(1./Screen('GetFlipInterval', dv.disp.ptr));
     dv.totFrames = dv.trialTime*dv.frameRate;
@@ -273,10 +277,12 @@ PDS.timing.fpoff(dv.j,:)     = [dv.trial.timeFpOff     dv.trial.frameFpOff];
 PDS.timing.reward{dv.j}      = dv.trial.timeReward(~isnan(dv.trial.timeReward));
 PDS.timing.breakfix(dv.j)    = dv.trial.timeBreakFix;
 
+% PDS SAVING STUFF
 PDS.timing.blobStart{dv.j} = dv.trial.blobWalkStart;
 PDS.timing.dirChoiceStart{dv.j} = dv.trial.dirChoiceStart;
 
-% PDS SAVING STUFF
+PDS.data.targCoords{dv.j} = dv.targCoords;
+
 if dv.pass == 0
     %Eyelink
     PDS.data.eyeposLoop{dv.j} = eyepos;
