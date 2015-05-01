@@ -22,7 +22,7 @@ end
  dv.frameRate = round(1./Screen('GetFlipInterval', dv.disp.ptr));
     dv.totFrames = dv.trialTime*dv.frameRate;
     
-    % make a Gaussian matlab matrix
+    % make a Gaussian matrix
     dv.alphGab = ggaus(dv.gabSize, dv.thisSig);   
     dv.targGab = dv.alphGab./(2.*pi.*dv.thisSig.^2);  % keep total energy constant
     dv.targGab = dv.cont.*2.*pi.*64*dv.targGab;               % scale a gaus with a sig of 8 has height 1
@@ -147,7 +147,7 @@ dv.trial.ttime  = GetSecs - dv.trial.trstart;
 PDS.timing.syncTimeDuration(dv.j) = dv.trial.ttime;
 
 
-% % Query the frame duration - needed?
+% % Query the frame duration
 % *****************
 ifi = Screen('GetFlipInterval', dv.disp.ptr);
 vbl = Screen('Flip', dv.disp.ptr); %Initially synchronize with retrace, take base time in vbl
@@ -282,6 +282,8 @@ PDS.timing.blobStart{dv.j} = dv.trial.blobWalkStart;
 PDS.timing.dirChoiceStart{dv.j} = dv.trial.dirChoiceStart;
 
 PDS.data.targCoords{dv.j} = dv.targCoords;
+PDS.data.trialSig{dv.j} = dv.thisSig;
+PDS.data.trialStepSize{dv.j} = dv.stepSize;
 
 if dv.pass == 0
     %Eyelink
