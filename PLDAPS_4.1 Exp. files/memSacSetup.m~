@@ -1,0 +1,77 @@
+function p=memSacSetup(p)
+% Memory guided saccades experiment setup
+% example:
+% load settingsStruct
+% p=pldaps(@memSacSetup,'subj', settingsStruct);
+% p.run
+
+% Trial function
+p.defaultParameters.pldaps.trialFunction='memSac';
+
+% Default trial parameters
+p = pdsDefaultTrialStructure(p); 
+    
+%         dv.defaultParameters.pldaps.trialMasterFunction='runTrial';
+
+%five seconds per trial.
+p.trial.pldaps.maxTrialLength = 5;
+p.trial.pldaps.maxFrames = p.trial.pldaps.maxTrialLength*p.trial.display.frate;
+
+c.Nr=1; %one condition;
+p.conditions=repmat({c},1,200);
+
+p.defaultParameters.pldaps.finish = length(p.conditions);
+
+
+defaultTrialVariables(p);
+
+% Rew
+p.trial.stimulus.rewardTime = .1;
+
+% Fixation
+p.trial.stimulus.preTrial     = .5;       
+p.trial.stimulus.fixWait      = 3;        
+p.trial.stimulus.fixHold      = 1;
+p.trial.stimulus.fixationXY   = [0 0]; % degrees
+
+% Targets
+p.trial.stimulus.targWait   	= 1.5;
+p.trial.stimulus.targHold   	= 0.5;
+p.trial.stimulus.targOnset  	= [0.1 0.1];
+p.trial.stimulus.targDuration 	= [2 .2];
+
+% Task
+p.trial.stimulus.targUser  = 0;
+p.trial.stimulus.proportionMemory = .5; % generates rate at which memory saccades are shown
+
+p.trial.stimulus.targRange = [-20 -10 20 10]; 
+p.trial.stimulus.jitterspace = 2;
+
+% Windows
+p.trial.stimulus.fpWin 			= [.8 .8]; % x,y radius
+p.trial.stimulus.winScaleVisual = .2; % scale targwin with eccentricity
+p.trial.stimulus.winScaleMemory = .4;
+    
+    % Misc. (added by ELH from old PLDAPS because of legacy functions)
+%-------------------------------------------------------------------------%
+p.trial.stimulus.fixationXY = [0 0]; % degrees
+p.trial.stimulus.fpWin = [.8 .8]; % x,y radius
+p.trial.stimulus.fixdotW = 16;
+
+
+% %
+% p.trial.pldaps.trialStates
+% 
+%                trialSetup: -1
+%              trialPrepare: -2
+%       trialCleanUpandSave: -3
+%               frameUpdate: 1
+%       framePrepareDrawing: 2
+%                 frameDraw: 3
+%      frameIdlePreLastDraw: 4
+%     frameDrawTimecritical: 5
+%      frameDrawingFinished: 6
+%         frameIdlePostDraw: 7
+%                 frameFlip: 8
+
+end

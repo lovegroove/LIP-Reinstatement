@@ -1,0 +1,136 @@
+function p = memSac(p,state)
+% trial file for memSac (memory guided saccades) 
+% relies on memSacSetup.m which sets up initial parameters
+
+% Runs through default trial states (Drawing, frame flipping and updating etc.)
+pldapsDefaultTrialFunction(p,state);
+
+% Trial states                                      
+ switch state
+    case p.trial.pldaps.trialStates.trialSetup
+        % setup task
+        p.trial.stimulus.task = (rand() < p.trial.stimulus.proportionMemory) + 1;
+
+        if p.trial.stimulus.task == 1
+            p.trial.stimulus.winScale = p.trial.stimulus.winScaleVisual;
+        else
+            p.trial.stimulus.winScale = p.trial.stimulus.winScaleMemory;
+        end
+
+        p.trial.stimulus.targ1XY = [10 10]; %sampleTargetLocation(p);
+        
+        p.trial.stimulus.targLoc*.p.trial.display.ppd
+
+        % setup Jonas' fancy framedrop plotting    
+        p.trial.sf = opticflow.screenFigure(p, [-p.trial.display.wWidth/2+10 -p.trial.display.wHeight/2+25], [20 5], p.trial.display.overlayptr, 12,[0 3000], [0 3*p.trial.display.ifi],p.trial.display.clut.hBlack*[1 1 1]);
+
+    case p.trial.pldaps.trialStates.framePrepareDrawing;
+        
+         checkFixation(p);
+        % checkMotionState(p);
+        % checkTrialState(p);
+        
+        % if(p.trial.stimulus.flagMotionState==3)
+        %     p.trial.stimulus.currentMotionFrame=p.trial.stimulus.currentMotionFrame+1;
+        %     p.trial.stimulus.motionDirection(:,p.trial.iFrame)=(p.trial.stimulus.currentMotionFrame*p.trial.display.ifi*p.trial.stimulus.omega + p.trial.stimulus.phase)/pi*180;
+        % end
+     case p.trial.pldaps.trialStates.frameDraw;
+         
+%             %%draw stuff to the experimenter screen
+%             %we have to to it here, as, if we don't want it to draw over the dots drawn later        
+%             dataInds=max(round(p.trial.iFrame-3/p.trial.display.ifi),1):p.trial.iFrame-1;
+%             time=dataInds*1000*p.trial.display.ifi;
+%             time=time(2:end);
+%             p.trial.sf.xlims=[max([min(time) 0]) max([time 3000])];
+%             opticflow.screenPlot(p.trial.sf, p.trial.sf.xlims, [p.trial.display.ifi p.trial.display.ifi], p.trial.display.clut.hBlack, '-');
+%             opticflow.screenPlot(p.trial.sf, time, diff(p.trial.timing.flipTimes(1,dataInds)), p.trial.display.clut.hRed, '--');
+            
+ 
+           % Drawing fix pt, targets etc.  
+             Screen('Drawdots',  p.trial.display.overlayptr, [400 400], ...
+             p.trial.stimulus.fixdotW, p.trial.display.clut.red, [0 0],1); % transpose fixationXY or no?   **** is it being drawn oer some how????????
+         
+             
+
+    case p.trial.pldaps.trialStates.frameFlip;
+        % if the trial has exceeded maximum duration, end trial and move to
+        % the next
+        if p.trial.iFrame == p.trial.pldaps.maxFrames
+            p.trial.flagNextTrial=true;
+        end
+        
+         
+ end
+
+
+% Reward function
+function giveReward(dv)
+    if dv.trial.datapixx.use
+        pds.datapixx.analogOut(dv.trial.stimulus.rewardTime)
+        pds.datapixx.flipBit(dv.trial.event.REWARD);
+    end
+    %             dv.trial.ttime = GetSecs - dv.trial.trstart;
+    dv.trial.stimulus.timeReward(:,dv.trial.stimulus.iReward) = [dv.trial.ttime dv.trial.stimulus.rewardTime];
+    dv.trial.stimulus.iReward = dv.trial.stimulus.iReward + 1;
+    PsychPortAudio('Start', dv.trial.sound.reward);
+
+    
+% Fixation held (helper function)
+function held = fixationHeld(dv)
+    held = squarewindow(dv.trial.pldaps.pass,dv.trial.display.ctr(1:2)+dv.trial.stimulus.fixationXY-[dv.trial.eyeX dv.trial.eyeY],dv.trial.stimulus.fpWin(1),dv.trial.stimulus.fpWin(2));
+%   held = circlewindow(dv.trial.pldaps.pass,[dv.trial.eyeX dv.trial.eyeY]-(dv.trial.stimulus.fixationXY+dv.trial.display.ctr(1:2)),dv.trial.stimulus.fpWin(1),dv.trial.stimulus.fpWin(2));
+    
+
+% Check fixation function  
+function dv = checkFixation(dv)
+    % WAITING FOR SUBJECT FIXATION (fp1)
+    fixating=fixationHeld(dv);
+    if  dv.trial.state == dv.trial.stimulus.states.START
+        %dv.trial.stimulus.fpWin = dv.trial.fpWin*dv.trial.display.ppd/2;
+        if fixating && dv.trial.ttime  < (dv.trial.stimulus.preTrial+dv.trial.stimulus.fixWait)
+            dv.trial.stimulus.colorFixDot = dv.trial.display.clut.targetnull;
+            dv.trial.stimulus.colorFixWindow = dv.trial.display.clut.window;
+            dv.trial.stimulus.timeFpEntered = dv.trial.ttime;%GetSecs - dv.trial.trstart;
+            dv.trial.stimulus.frameFpEntered = dv.trial.iFrame;
+            if dv.trial.datapixx.use
+                pds.datapixx.flipBit(dv.trial.event.FIXATION)
+            end
+            dv.trial.state = dv.trial.stimulus.states.FPHOLD;
+        elseif dv.trial.ttime  > (dv.trial.stimulus.preTrial+dv.trial.stimulus.fixWait) % Was inflexible. TBC: dv.trial.fixwaitstop
+            if dv.trial.datapixx.use
+                pds.datapixx.flipBit(dv.trial.event.BREAKFIX)
+            end
+            dv.trial.stimulus.timeBreakFix = dv.trial.ttime;%GetSecs - dv.trial.trstart;
+            dv.trial.state = dv.trial.stimulus.states.BREAKFIX;
+        end
+    end
+
+    % check if fixation is held
+
+    if dv.trial.state == dv.trial.stimulus.states.FPHOLD
+        %dv.trial.stimulus.fpWin = dv.trial.fpWin*dv.trial.display.ppd;
+        if fixating && (dv.trial.ttime > dv.trial.stimulus.timeFpEntered + dv.trial.stimulus.fpOffset || dv.trial.iFrame==dv.trial.pldaps.maxFrames)
+            dv.trial.stimulus.colorFixDot    = dv.trial.display.clut.bg;
+            dv.trial.stimulus.colorFixWindow = dv.trial.display.clut.bg;
+            if dv.trial.datapixx.use
+                pds.datapixx.flipBit(dv.trial.event.FIXATION)
+            end
+            dv.trial.ttime      = GetSecs - dv.trial.trstart;
+            dv.trial.stimulus.timeFpOff  = dv.trial.ttime;
+            dv.trial.stimulus.frameFpOff = dv.trial.iFrame;
+            dv.trial.stimulus.timeComplete = dv.trial.ttime;
+            dv.trial.state      = dv.trial.stimulus.states.TRIALCOMPLETE;
+        elseif ~fixating && dv.trial.ttime < dv.trial.stimulus.timeFpEntered + dv.trial.stimulus.fpOffset
+            dv.trial.stimulus.colorFixDot    = dv.trial.display.clut.bg;
+            dv.trial.stimulus.colorFixWindow = dv.trial.display.clut.bg;
+            if dv.trial.datapixx.use
+                pds.datapixx.flipBit(dv.trial.event.BREAKFIX)
+            end
+            dv.trial.stimulus.timeBreakFix = GetSecs - dv.trial.trstart;
+            dv.trial.state = dv.trial.stimulus.states.BREAKFIX;
+       
+        end
+    end
+                
+    
+    
