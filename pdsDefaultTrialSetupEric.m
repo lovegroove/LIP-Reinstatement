@@ -56,6 +56,12 @@ dv.pa.fixdotW   = 8;    % width of the fixation dot
 dv.pa.targdotW  = 8;    % width of the target dot
 dv.pa.cursorW   = 8;   % cursor width in pixels
 
+
+% Window Stuff
+% Get the center coordinate of the window
+[dv.pa.xCenter, dv.pa.yCenter] = RectCenter(dv.disp.winRect);
+
+
 % States
 %-------------------------------------------------------------------------%
 dv.states.START     = 1;
