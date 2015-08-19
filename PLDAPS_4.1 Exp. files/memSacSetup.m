@@ -14,7 +14,7 @@ p = pdsDefaultTrialStructure(p);
 %         dv.defaultParameters.pldaps.trialMasterFunction='runTrial'; % automatically specified, right?
 
 % trial length (s)
-p.trial.pldaps.maxTrialLength = 5;
+p.trial.pldaps.maxTrialLength = 6;
 p.trial.pldaps.maxFrames = p.trial.pldaps.maxTrialLength*p.trial.display.frate;
 
 c.Nr=1; % number of conditions
@@ -40,10 +40,11 @@ p.trial.stimulus.fpOffset = .5; % adding this in... unsure of value
 % Targets
 p.trial.stimulus.targWait   	= 1.5;
 p.trial.stimulus.targHold   	= 0.5;
-p.trial.stimulus.targOnset  	= [0.1 0.1];
+p.trial.stimulus.targOnset  	= 1; % [0.1 0.1];
 p.trial.stimulus.targDuration 	= [2 .2];
-p.trial.stimulus.targ1Loc        = [10 0]; % degrees (elh)
-p.trial.stimulus.targ2Loc        = [-10 0]; % degrees (elh)
+% Targets Location
+p.trial.stimulus.targ1XYdeg = [10 0]; % deg
+p.trial.stimulus.targ2XYdeg = [-10 0];
 
 % Task
 p.trial.stimulus.targUser  = 0;
@@ -56,6 +57,13 @@ p.trial.stimulus.jitterspace = 2;
 p.trial.stimulus.fpWin 			= [.8 .8]; % x,y radius
 p.trial.stimulus.winScaleVisual = .2; % scale targwin with eccentricity
 p.trial.stimulus.winScaleMemory = .4;
+
+% Misc. Initialization/Drawing/stimulus
+p.trial.pldaps.draw.frameDropPlot.use = 0;
+p.trial.stimulus.showFixationPoint = 1;
+% p.trial.stimulus.showTarg1 = 1;
+% p.trial.stimulus.showTarg2 = 1;
+p.trial.stimulus.showTargets = 0;
 
 %-------------------------------------------------------------------------%
 % Colors
