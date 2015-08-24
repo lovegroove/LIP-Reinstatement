@@ -9,8 +9,7 @@ pldapsDefaultTrialFunction(p,state);
  switch state
     case p.trial.pldaps.trialStates.trialSetup
         % setup task
-        p.trial.stimulus.task = (rand() < p.trial.stimulus.proportionMemory) + 1;
-        
+        %p.trial.stimulus.task = (rand() < p.trial.stimulus.proportionMemory) + 1; % Only testing memory guided right now
         if p.trial.stimulus.task == 1
             p.trial.stimulus.winScale = p.trial.stimulus.winScaleVisual;
         else
@@ -20,29 +19,40 @@ pldapsDefaultTrialFunction(p,state);
         % setup Jonas' fancy framedrop plotting
         p.trial.sf = opticflow.screenFigure(p, [-p.trial.display.wWidth/2+10 -p.trial.display.wHeight/2+25], [20 5], p.trial.display.overlayptr, 12,[0 3000], [0 3*p.trial.display.ifi],p.trial.display.clut.hBlack*[1 1 1]);
         
-        % Randomize which target is shown
-        if rand() > .5
-        p.trial.stimulus.targ1On = 1;
-        p.trial.stimulus.targ2On = 0;
-        else
-        p.trial.stimulus.targ2On = 1;
-        p.trial.stimulus.targ1On = 0;
-        end
-        
+        % ---Setup Targets---
         % Calculate Targets locations
         p.trial.stimulus.targ1XY = [p.trial.stimulus.targ1XYdeg(1)*p.trial.display.w2px(1) p.trial.stimulus.targ1XYdeg(2)*p.trial.display.w2px(2)]; 
         p.trial.stimulus.targ2XY = [p.trial.stimulus.targ2XYdeg(1)*p.trial.display.w2px(1) p.trial.stimulus.targ2XYdeg(2)*p.trial.display.w2px(2)];
+        % Randomize which target is shown
+        if rand() > .5     
+        p.trial.stimulus.targLoc = p.trial.stimulus.targ1XY;
+        else    
+        p.trial.stimulus.targLoc = p.trial.stimulus.targ2XY;
+        end
+        % Calculate window of target
+        p.trial.stimulus.targWin = p.trial.stimulus.fpWin + [1 1] * (sqrt(sum((p.trial.stimulus.targLoc - p.trial.stimulus.fixationXY).^2))*p.trial.stimulus.winScale);
+        p.trial.stimulus.targRect = [-p.trial.stimulus.targWin(1) -p.trial.stimulus.targWin(2) p.trial.stimulus.targWin(1) p.trial.stimulus.targWin(2)] + [p.trial.display.ctr(1:2) + p.trial.stimulus.targLoc,p.trial.display.ctr(1:2) + p.trial.stimulus.targLoc];
+        %--------------
+        
+        % Starting stimulus states for fixaiton (p.trial.stimulus.states
+        % different then p.trial.pldaps.trialStates)
+        p.trial.state = p.trial.stimulus.states.START; % NEED THIS!
+        p.trial.stimulus.showFixationPoint = 1; % Or just do this in setup file...?
         
         
         % *** FRAME STATES *** 
     case p.trial.pldaps.trialStates.framePrepareDrawing;
         
-        % MAKE SURE THIS IS WORKING, (remember next trial qill be flagged
-        % when max frames are reached)s
-%          p = checkFixation(p);
-%        
-%          p = checkTrialState(p);
-%         
+        % MAKE SURE THIS IS WORKING, (remember next trial will be flagged
+        % when max frames are reached) DOES ORDER OF THESE FUNCTIONS
+        % MATTER??
+        
+        p = checkTrialState(p);
+         
+        p = checkFixation(p);
+        
+        p = checkTargetFixation(p);
+        
         
      case p.trial.pldaps.trialStates.frameDraw;
          
@@ -58,46 +68,58 @@ pldapsDefaultTrialFunction(p,state);
              opticflow.screenPlot(p.trial.sf, time, diff(p.trial.timing.flipTimes(1,dataInds)), p.trial.display.clut.hRed, '--');
          end
          
+%          %-------------------- if only switching colors-------------------%
+%          % Drawing only (every frame, just switch colors)        
+%          Screen('Drawdots',  p.trial.display.overlayptr,  p.trial.stimulus.fixationXY, ...
+%              p.trial.stimulus.fixdotW , p.trial.stimulus.colorFixDot, p.trial.display.ctr(1:2),1);
+%          
+%          Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targ1XY, ...
+%              p.trial.stimulus.fixdotW, p.trial.stimulus.colorTarget1Dot, p.trial.display.ctr(1:2),1);
+%          
+%          Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targ2XY, ...
+%              p.trial.stimulus.fixdotW, p.trial.stimulus.colorTarget2Dot, p.trial.display.ctr(1:2),1);
+         
+         %__________________________%
          % Drawing Fixation pt
-         if p.trial.ttime > p.trial.stimulus.preTrial && p.trial.stimulus.showFixationPoint
+         if p.trial.stimulus.showFixationPoint % && p.trial.ttime > p.trial.stimulus.preTrial   
              Screen('Drawdots',  p.trial.display.overlayptr,  p.trial.stimulus.fixationXY, ...
                  p.trial.stimulus.fixdotW , p.trial.display.clut.fixation, p.trial.display.ctr(1:2),1);
          end
          
-         % Drawing targets
-         if p.trial.stimulus.showTargets
-             
-             if p.trial.stimulus.targ1On
-             Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targ1XY, ...
-                 p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
-             end
-             if p.trial.stimulus.targ2On
-             Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targ2XY, ...
-                 p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
-             end
+         % Drawing Target window
+         if p.trial.stimulus.showTargWin
+             Screen('FrameRect', p.trial.display.overlayptr, p.trial.display.clut.window, p.trial.stimulus.targRect); % perhaps should be regular screen(not overlay) if actually showing it
+         end
+         
+         % Drawing target - Showing (flashing) the target does not have to
+         % depend on target functions because subject is still fixating
+         % when they are on
+         if p.trial.stimulus.showTargets && p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2)) % targ duration 2 is for memory guided
+             Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targLoc, ...
+                 p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);    
          end
          
          % When to draw logic
-         if p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.preTrial) && ~p.trial.stimulus.showTargets
-             p.trial.stimulus.showTargets = 1;
-         end
+%          if p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.preTrial) && ~p.trial.stimulus.showTargets
+%              p.trial.stimulus.showTargets = 1;
+%          end
+%          
+%          if p.trial.ttime > (p.trial.stimulus.targDuration(2) + p.trial.stimulus.targOnset + p.trial.stimulus.preTrial) && p.trial.stimulus.showTargets
+%              p.trial.stimulus.showTargets = 0;
+%          end
+%          
+%          if p.trial.ttime > (p.trial.stimulus.targWait + p.trial.stimulus.targDuration(2) + p.trial.stimulus.targOnset + p.trial.stimulus.preTrial)
+%              p.trial.stimulus.showFixationPoint = 0;
+%          end
+         %__________________________%
          
-         if p.trial.ttime > (p.trial.stimulus.targDuration(2) + p.trial.stimulus.targOnset + p.trial.stimulus.preTrial) && p.trial.stimulus.showTargets
-             p.trial.stimulus.showTargets = 0;
-         end
-         
-         if p.trial.ttime > (p.trial.stimulus.targWait + p.trial.stimulus.targDuration(2) + p.trial.stimulus.targOnset + p.trial.stimulus.preTrial)
-             p.trial.stimulus.showFixationPoint = 0;
-         end
-         
-         
-
-    case p.trial.pldaps.trialStates.frameFlip;
-        % if the trial has exceeded maximum duration, end trial and move to
-        % the next
-        if p.trial.iFrame == p.trial.pldaps.maxFrames
-            p.trial.flagNextTrial=true;
-        end
+        % If you want the trial to have a maximum time based on frames
+%     case p.trial.pldaps.trialStates.frameFlip;
+%         % if the trial has exceeded maximum duration, end trial and move to
+%         % the next
+%         if p.trial.iFrame == p.trial.pldaps.maxFrames
+%             p.trial.flagNextTrial=true;
+%         end
         
          
  end
@@ -113,30 +135,34 @@ end % end memSac
                 held = squarewindow(p.trial.pldaps.pass,p.trial.display.ctr(1:2)+p.trial.stimulus.fixationXY-[p.trial.eyeX p.trial.eyeY],p.trial.stimulus.fpWin(1),p.trial.stimulus.fpWin(2));
     end
     
+    % Make sure this works right...
+    function held = targetHeld(p)
+                held = squarewindow(p.trial.pldaps.pass,p.trial.display.ctr(1:2)+p.trial.stimulus.targWin-[p.trial.eyeX p.trial.eyeY],p.trial.stimulus.targWin(1),p.trial.stimulus.targWin(2));
+    end
+    
   
    
     
 % CHECK FIXATION
 %---------------------------------------------------------------------%
 function p = checkFixation(p)
-        % WAITING FOR SUBJECT FIXATION (fp1)
+        % WAITING FOR SUBJECT FIXATION
         fixating=fixationHeld(p);
         if  p.trial.state == p.trial.stimulus.states.START
-            %dv.trial.stimulus.fpWin = dv.trial.fpWin*dv.trial.display.ppd/2;
+            %p.trial.stimulus.fpWin = p.trial.fpWin*p.trial.display.ppd/2;
             if fixating && p.trial.ttime  < (p.trial.stimulus.preTrial+p.trial.stimulus.fixWait)
-                p.trial.stimulus.colorFixDot = p.trial.display.clut.targetnull;
-                p.trial.stimulus.colorFixWindow = p.trial.display.clut.window;
-                p.trial.stimulus.timeFpEntered = p.trial.ttime;%GetSecs - dv.trial.trstart;
+                
+                p.trial.stimulus.timeFpEntered = p.trial.ttime;%GetSecs - p.trial.trstart;
                 p.trial.stimulus.frameFpEntered = p.trial.iFrame;
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.FIXATION,p.trial.pldaps.iTrial)
                 end
                 p.trial.state = p.trial.stimulus.states.FPHOLD;
-            elseif p.trial.ttime  > (p.trial.stimulus.preTrial+p.trial.stimulus.fixWait) % Was inflexible. TBC: dv.trial.fixwaitstop
+            elseif p.trial.ttime  > (p.trial.stimulus.preTrial+p.trial.stimulus.fixWait) 
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.BREAKFIX,p.trial.pldaps.iTrial)
                 end
-                p.trial.stimulus.timeBreakFix = p.trial.ttime;%GetSecs - dv.trial.trstart;
+                p.trial.stimulus.timeBreakFix = p.trial.ttime;%GetSecs - p.trial.trstart;
                 p.trial.state = p.trial.stimulus.states.BREAKFIX;
             end
         end
@@ -144,21 +170,23 @@ function p = checkFixation(p)
         % check if fixation is held
         
         if p.trial.state == p.trial.stimulus.states.FPHOLD
-            %dv.trial.stimulus.fpWin = dv.trial.fpWin*dv.trial.display.ppd;
-            if fixating && (p.trial.ttime > p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpOffset || p.trial.iFrame==p.trial.pldaps.maxFrames)
-                p.trial.stimulus.colorFixDot    = p.trial.display.clut.bg;
-                p.trial.stimulus.colorFixWindow = p.trial.display.clut.bg;
+            %p.trial.stimulus.fpWin = p.trial.fpWin*p.trial.display.ppd;
+            if fixating && p.trial.ttime > (p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpOffset) % || p.trial.iFrame==p.trial.pldaps.maxFrames) % still need max frames thing here? because we are not ending the trial successfully here anymore
+                
+                % Turn off fixation point
+                p.trial.stimulus.showFixationPoint = 0;
+                
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.FIXATION,p.trial.pldaps.iTrial)
                 end
                 p.trial.ttime      = GetSecs - p.trial.trstart;
                 p.trial.stimulus.timeFpOff  = p.trial.ttime;
                 p.trial.stimulus.frameFpOff = p.trial.iFrame;
-                p.trial.stimulus.timeComplete = p.trial.ttime;
-                p.trial.state      = p.trial.stimulus.states.TRIALCOMPLETE;
-            elseif ~fixating && p.trial.ttime < p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpOffset
-                p.trial.stimulus.colorFixDot    = p.trial.display.clut.bg;
-                p.trial.stimulus.colorFixWindow = p.trial.display.clut.bg;
+                
+                p.trial.state = p.trial.stimulus.states.CHOOSETARG;  
+                p.trial.stimulus.showTargets = 1; % probably not needed now
+                
+            elseif ~fixating && p.trial.ttime < p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpOffset                
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.BREAKFIX,p.trial.pldaps.iTrial)
                 end
@@ -169,14 +197,43 @@ function p = checkFixation(p)
         end
                 
 end    
+
+
+% Check target fixation
+function p = checkTargetFixation(p)
+
+    fixatingTarget = targetHeld(p);
+    % CHOOSE TARGET
+    if p.trial.state == p.trial.stimulus.states.CHOOSETARG 
+        if fixatingTarget % && p.trial.ttime % don't think I need anything else here
+            p.trial.stimulus.timeTargEntered = p.trial.ttime;
+            p.trial.state = p.trial.stimulus.states.HOLDTARG;    
+        elseif ~fixatingTarget && p.trial.ttime > (p.trial.stimulus.timeFpOff + p.trial.stimulus.targWait)  
+            p.trial.state = p.trial.stimulus.states.BREAKFIX;
+        end
+    end
+
+    % HOLD TARGET
+    if p.trial.state == p.trial.stimulus.states.HOLDTARG
+        if fixatingTarget && p.trial.ttime > (p.trial.stimulus.timeTargEntered + p.trial.stimulus.targHold)
+            % TRIALCOMPLETE
+            p.trial.stimulus.timeComplete = p.trial.ttime; 
+            p.trial.state = p.trial.stimulus.states.TRIALCOMPLETE;       
+        elseif ~fixatingTarget && p.trial.ttime < (p.trial.stimulus.timeTargEntered + p.trial.stimulus.targHold)
+            % BREAKFIX
+            p.trial.state = p.trial.stimulus.states.BREAKFIX;
+        end
+    end
     
+end
+
 % TRIAL COMPLETE? -- GIVE REWARD IF GOOD
 %---------------------------------------------------------------------%
 function p = checkTrialState(p)
         if p.trial.state == p.trial.stimulus.states.TRIALCOMPLETE
             p.trial.pldaps.goodtrial = 1;
             
-%             if dv.trial.ttime > dv.trial.stimulus.timeComplete + .2
+%             if p.trial.ttime > p.trial.stimulus.timeComplete + .2
                 
               pds.behavior.reward.give(p);
               
@@ -194,7 +251,7 @@ function p = checkTrialState(p)
 %                 end
 %             end
             
-%             if dv.trial.ttime > dv.trial.stimulus.timeComplete + 1
+%             if p.trial.ttime > p.trial.stimulus.timeComplete + 1
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.TRIALEND,p.trial.pldaps.iTrial);
                 end
@@ -213,11 +270,12 @@ function p = checkTrialState(p)
                 PsychPortAudio('Start', p.trial.sound.breakfix, 1, [], [], GetSecs + .1);
             end
             
-%             if dv.trial.ttime > dv.trial.stimulus.timeBreakFix + dv.trial.stimulus.breakFixPenalty
+%             if p.trial.ttime > p.trial.stimulus.timeBreakFix + p.trial.stimulus.breakFixPenalty
                 p.trial.flagNextTrial = true;
 %             end
         end
         
         
-    end
+end
+    
     

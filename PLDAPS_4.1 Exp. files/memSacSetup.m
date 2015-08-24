@@ -14,7 +14,7 @@ p = pdsDefaultTrialStructure(p);
 %         dv.defaultParameters.pldaps.trialMasterFunction='runTrial'; % automatically specified, right?
 
 % trial length (s)
-p.trial.pldaps.maxTrialLength = 6;
+p.trial.pldaps.maxTrialLength = 10;
 p.trial.pldaps.maxFrames = p.trial.pldaps.maxTrialLength*p.trial.display.frate;
 
 c.Nr=1; % number of conditions
@@ -34,19 +34,21 @@ p.trial.stimulus.fixWait      = 3;
 p.trial.stimulus.fixHold      = 1;
 p.trial.stimulus.fixationXY   = [0 0]; % degrees
 
-p.trial.stimulus.fpOffset = .5; % adding this in... unsure of value
-%dv.trial.stimulus.fpOffset ??? needed?
+% Make this variable and maybe raname it to something better
+p.trial.stimulus.fpOffset = 1.5; % length of time you must fixate before the fixation goes off and queues you to make a saccade to a target (or where the target was...)
+
 
 % Targets
-p.trial.stimulus.targWait   	= 1.5;
+p.trial.stimulus.targWait   	= 1.5; % seems long but this is what it was set to before (if i'm interpreting which variable this is right...)
 p.trial.stimulus.targHold   	= 0.5;
 p.trial.stimulus.targOnset  	= 1; % [0.1 0.1];
-p.trial.stimulus.targDuration 	= [2 .2];
+p.trial.stimulus.targDuration 	= [2 .2]; % [visually-guided memory-guided]
 % Targets Location
 p.trial.stimulus.targ1XYdeg = [10 0]; % deg
 p.trial.stimulus.targ2XYdeg = [-10 0];
 
 % Task
+p.trial.stimulus.task = 0; % 1 = vis guided, 0 = memory guided
 p.trial.stimulus.targUser  = 0;
 p.trial.stimulus.proportionMemory = .5; % generates rate at which memory saccades are shown
 
@@ -57,12 +59,11 @@ p.trial.stimulus.jitterspace = 2;
 p.trial.stimulus.fpWin 			= [.8 .8]; % x,y radius
 p.trial.stimulus.winScaleVisual = .2; % scale targwin with eccentricity
 p.trial.stimulus.winScaleMemory = .4;
+p.trial.stimulus.showTargWin = 1;
 
-% Misc. Initialization/Drawing/stimulus
+% Misc. Initialization/Drawing/stimulus - Probably don't need some of this
 p.trial.pldaps.draw.frameDropPlot.use = 0;
-p.trial.stimulus.showFixationPoint = 1;
-% p.trial.stimulus.showTarg1 = 1;
-% p.trial.stimulus.showTarg2 = 1;
+p.trial.stimulus.showFixationPoint = 0;
 p.trial.stimulus.showTargets = 0;
 
 %-------------------------------------------------------------------------%
