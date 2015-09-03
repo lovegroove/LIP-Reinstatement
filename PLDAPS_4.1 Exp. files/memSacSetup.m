@@ -33,16 +33,14 @@ p.trial.stimulus.preTrial     = .5;
 p.trial.stimulus.fixWait      = 3;        
 p.trial.stimulus.fixHold      = 1;
 p.trial.stimulus.fixationXY   = [0 0]; % degrees
-
-% Make this variable and maybe raname it to something better
-p.trial.stimulus.fpOffset = 1.5; % length of time you must fixate before the fixation goes off and queues you to make a saccade to a target (or where the target was...)
+p.trial.stimulus.fpHoldTime = 1.5;  % length of time you must fixate before the fixation goes off and queues you to make a saccade to a target (or where the target was in the case of memory guided...)
 
 
 % Targets
 p.trial.stimulus.targWait   	= 1.5; % seems long but this is what it was set to before (if i'm interpreting which variable this is right...)
 p.trial.stimulus.targHold   	= 0.5;
-p.trial.stimulus.targOnset  	= 1; % [0.1 0.1];
-p.trial.stimulus.targDuration 	= [2 .2]; % [visually-guided memory-guided]
+p.trial.stimulus.targOnset  	= 0.1; % [0.1 0.1]; % [visually-guided, memory-guided]
+p.trial.stimulus.targDuration 	= [2 .2]; % [visually-guided, memory-guided]
 % Targets Location
 p.trial.stimulus.targ1XYdeg = [10 0]; % deg
 p.trial.stimulus.targ2XYdeg = [-10 0];
@@ -63,8 +61,9 @@ p.trial.stimulus.showTargWin = 1;
 
 % Misc. Initialization/Drawing/stimulus - Probably don't need some of this
 p.trial.pldaps.draw.frameDropPlot.use = 0;
-p.trial.stimulus.showFixationPoint = 0;
-p.trial.stimulus.showTargets = 0;
+p.trial.stimulus.showFixationPoint = 0; % Want to do this here, or just in trial file?
+p.trial.stimulus.showTarg = 0;
+
 
 %-------------------------------------------------------------------------%
 % Colors
