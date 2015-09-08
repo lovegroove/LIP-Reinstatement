@@ -16,7 +16,7 @@ pldapsDefaultTrialFunction(p,state);
             p.trial.stimulus.winScale = p.trial.stimulus.winScaleMemory;
         end
         
-        % ---Setup Targets---
+        % ---Setup Targets--- %
         % Calculate Targets locations
         p.trial.stimulus.targ1XY = [p.trial.stimulus.targ1XYdeg(1)*p.trial.display.w2px(1) p.trial.stimulus.targ1XYdeg(2)*p.trial.display.w2px(2)]; 
         p.trial.stimulus.targ2XY = [p.trial.stimulus.targ2XYdeg(1)*p.trial.display.w2px(1) p.trial.stimulus.targ2XYdeg(2)*p.trial.display.w2px(2)];
@@ -34,18 +34,16 @@ pldapsDefaultTrialFunction(p,state);
         % Starting stimulus states for fixaiton (p.trial.stimulus.states
         % different then p.trial.pldaps.trialStates)
         p.trial.state = p.trial.stimulus.states.START; % NEED THIS!
-        p.trial.stimulus.showFixationPoint = 1; % fix on
-        p.trial.stimulus.showTarg = 0; %reset targ Need this?
-        %p.trial.stimulus.timeFpEntered = NaN; % Reset this? ******!!!!!!
+        p.trial.stimulus.showFixationPoint = 1; % fix on (could just put this in setup)
+        p.trial.stimulus.timeFpOn = NaN; % do we have to explicitly NaN these???? i don't think so
+        p.trial.stimulus.timeTargetOn = NaN;
+        %p.trial.stimulus.showTarg = 0; %reset targ, not needed now
+        
         p.trial.stimulus.fpWin = p.trial.stimulus.fpWin*p.trial.display.ppd; % deg to pix
         
         
-        % *** FRAME STATES *** 
+        % *** FRAME STATES *** % 
     case p.trial.pldaps.trialStates.framePrepareDrawing;
-        
-        % MAKE SURE THIS IS WORKING, (remember next trial will be flagged
-        % when max frames are reached) DOES ORDER OF THESE FUNCTIONS
-        % MATTER??
          
         p = checkFixation(p);
         
@@ -53,12 +51,19 @@ pldapsDefaultTrialFunction(p,state);
         
         p = checkTrialState(p);
         
+        % save eye position on every frame
+        p.trial.stimulus.eyeXYs(1:2,p.trial.iFrame)= [p.trial.eyeX-p.trial.display.pWidth/2; p.trial.eyeY-p.trial.display.pHeight/2];
+        
      case p.trial.pldaps.trialStates.frameDraw;
 
          % Drawing Fixation pt
-         if p.trial.stimulus.showFixationPoint && p.trial.ttime > p.trial.stimulus.preTrial   
+         if p.trial.stimulus.showFixationPoint && p.trial.ttime > p.trial.stimulus.preTrial
              Screen('Drawdots',  p.trial.display.overlayptr,  p.trial.stimulus.fixationXY, ...
                  p.trial.stimulus.fixdotW , p.trial.display.clut.fixation, p.trial.display.ctr(1:2),1);
+             if isnan(p.trial.stimulus.timeFpOn) % not sure if these time stamps are working
+                 p.trial.stimulus.timeFpOn = p.trial.ttime;
+                 p.trial.stimulus.frameFpOn = p.trial.iFrame;
+             end
          end
          
          % Drawing Target window
@@ -66,24 +71,17 @@ pldapsDefaultTrialFunction(p,state);
              Screen('FrameRect', p.trial.display.overlayptr, p.trial.display.clut.window, p.trial.stimulus.targRect); % perhaps should be regular screen(not overlay) if actually showing it (which screen is which screen?)
          end
          
-         % Drawing target - Flag because of drawing too soon
-%          if p.trial.stimulus.showTarg && p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2)) % targ duration 2 is for memory guided, change this when vis-guided built in
-%              Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targLoc, ...
-%                  p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
-%          end
-%          
-
-         if p.trial.stimulus.showTarg && p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2)) % targ duration 2 is for memory guided, change this when vis-guided built in
-             Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targLoc, ...
-                 p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
+         % Drawing target 
+         if ~isnan(p.trial.stimulus.timeFpEntered) %&& p.trial.stimulus.showTarg % flag not needed now
+             if p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2)) % targ duration 2 is for memory guided, change this when vis-guided built in
+                 Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targLoc, ...
+                     p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
+                 if isnan(p.trial.stimulus.timeTargetOn) % not sure if these time stamps are working
+                     p.trial.stimulus.timeTargetOn = p.trial.ttime;
+                     p.trial.stimulus.frameTargetOn = p.trial.iFrame;
+                 end
+             end
          end
-         
-
-%          if p.trial.stimulus.showTarg  
-%              Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targLoc, ...
-%                  p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
-%          end
-%          
          
          %__________________________%
          
@@ -123,15 +121,18 @@ function p = checkFixation(p)
         fixating=fixationHeld(p);
         if  p.trial.state == p.trial.stimulus.states.START
             
-            if fixating && p.trial.ttime  < (p.trial.stimulus.preTrial+p.trial.stimulus.fixWait)
+            if fixating && p.trial.ttime  < (p.trial.stimulus.preTrial+p.trial.stimulus.fixWait) && p.trial.ttime > p.trial.stimulus.preTrial % last part - to make sure the target is not accidently shown before the fp 
                 
                 p.trial.stimulus.timeFpEntered = p.trial.ttime;
                 p.trial.stimulus.frameFpEntered = p.trial.iFrame;
+                
+                %p.trial.stimulus.showTarg = 1; % FLAG TARG, not needed anymore
+                
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.FIXATION,p.trial.pldaps.iTrial)
                 end
                 p.trial.state = p.trial.stimulus.states.FPHOLD;
-                %p.trial.stimulus.showTarg = 1; % flag targ******* targOnset
+               
             elseif p.trial.ttime  > (p.trial.stimulus.preTrial+p.trial.stimulus.fixWait) 
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.BREAKFIX,p.trial.pldaps.iTrial)
@@ -145,7 +146,7 @@ function p = checkFixation(p)
         
         if p.trial.state == p.trial.stimulus.states.FPHOLD
             
-            if fixating && p.trial.ttime > (p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpHoldTime) % || p.trial.iFrame==p.trial.pldaps.maxFrames) % still need max frames thing here? because we are not ending the trial successfully here anymore
+            if fixating && p.trial.ttime > (p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpHoldTime) % || p.trial.iFrame==p.trial.pldaps.maxFrames) % still need max frames thing here?
                 
                 % Turn off fixation point (queue to make saccade)
                 p.trial.stimulus.showFixationPoint = 0;
@@ -157,8 +158,7 @@ function p = checkFixation(p)
                 p.trial.stimulus.timeFpOff  = p.trial.ttime;
                 p.trial.stimulus.frameFpOff = p.trial.iFrame;
                 
-                %p.trial.stimulus.showTarg = 1; % FLAG TARG
-                p.trial.state = p.trial.stimulus.states.CHOOSETARG; % NEXT TARGET STATE **************** 
+                p.trial.state = p.trial.stimulus.states.CHOOSETARG; % NEXT STATE: TARGET (need some grace time to saccade) 
                 
             elseif ~fixating && p.trial.ttime < (p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpHoldTime)                
                 if p.trial.datapixx.use
@@ -175,40 +175,12 @@ end
 
 % CHECK TARGET FIXATION
 function p = checkTargetFixation(p)
-    % SHOW TARGET *************** timeFpEntered = NAN = 0 before it's set
-    % thats' why it can show up early , do i hve to add a targOn state?
-    % p.trial.state >= 4 &&
-    
-    % Make sure we're far enough along in states
-%     if p.trial.state == p.trial.stimulus.states.CHOOSETARG || p.trial.state == p.trial.stimulus.states.HOLDTARG
-%         if p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2))
-%             p.trial.stimulus.showTarg = 1;
-%         else
-%             p.trial.stimulus.showTarg = 0;
-%         end
-%     end
-    
-    
-    %     if p.trial.state == p.trial.stimulus.states.TARGON %%&& p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered)
-    %         p.trial.stimulus.showTarg = 1;
-    %         p.trial.state = p.trial.stimulus.states.CHOOSETARG;
-    %     end
-    %
-    %     if (p.trial.state == p.trial.stimulus.states.CHOOSETARG || p.trial.state == p.trial.stimulus.states.TARGON) && p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2))
-    %         p.trial.stimulus.showTarg = 0;
-    %     end
-    %
-    %     if ~isnan(p.trial.stimulus.timeFpEntered) && p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2)) % 2 = memory guided saccades
-    %         p.trial.stimulus.showTarg = 1;  % could just put the draw here but wanted to keep all the drawing together
-    %     else
-    %         p.trial.stimulus.showTarg = 0;
-    %     end
     
     fixatingTarget = targetHeld(p);
     
     % CHOOSE TARGET
     if p.trial.state == p.trial.stimulus.states.CHOOSETARG
-        p.trial.stimulus.showTarg = 1; % FLAG TARG
+        
         if fixatingTarget % && p.trial.ttime % don't think I need anything else here
             p.trial.stimulus.timeTargEntered = p.trial.ttime;
             p.trial.state = p.trial.stimulus.states.HOLDTARG;
@@ -265,11 +237,9 @@ function p = checkTrialState(p)
         end
         
         if p.trial.state == p.trial.stimulus.states.BREAKFIX
-            % turn off stimulus
-%             p.trial.stimulus.colorFixDot        = p.trial.display.clut.bg;            % fixation point 1 color
-%             p.trial.stimulus.colorFixWindow     = p.trial.display.clut.bg;           % fixation window color
+
             p.trial.pldaps.goodtrial = 0;
-%             p.trial.targOn = 2;
+
             if p.trial.sound.use && ~isnan(p.trial.stimulus.timeFpEntered) 
                 PsychPortAudio('Start', p.trial.sound.breakfix, 1, [], [], GetSecs + .1);
             end

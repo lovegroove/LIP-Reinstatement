@@ -14,7 +14,7 @@ p = pdsDefaultTrialStructure(p);
 %         dv.defaultParameters.pldaps.trialMasterFunction='runTrial'; % automatically specified, right?
 
 % trial length (s)
-p.trial.pldaps.maxTrialLength = 10;
+p.trial.pldaps.maxTrialLength = 20;
 p.trial.pldaps.maxFrames = p.trial.pldaps.maxTrialLength*p.trial.display.frate;
 
 c.Nr=1; % number of conditions
