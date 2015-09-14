@@ -9,7 +9,7 @@ pldapsDefaultTrialFunction(p,state);
  switch state
     case p.trial.pldaps.trialStates.trialSetup
         % setup task
-        %p.trial.stimulus.task = (rand() < p.trial.stimulus.proportionMemory) + 1; % Only testing memory guided right now
+        %p.trial.stimulus.task = (rand() < p.trial.stimulus.proportionMemory) + 1; % Only testing memory guided right now, don't forget to add vis back in
         if p.trial.stimulus.task == 1
             p.trial.stimulus.winScale = p.trial.stimulus.winScaleVisual;
         else
@@ -31,15 +31,11 @@ pldapsDefaultTrialFunction(p,state);
         p.trial.stimulus.targRect = [-p.trial.stimulus.targWin(1) -p.trial.stimulus.targWin(2) p.trial.stimulus.targWin(1) p.trial.stimulus.targWin(2)] + [p.trial.display.ctr(1:2) + p.trial.stimulus.targLoc,p.trial.display.ctr(1:2) + p.trial.stimulus.targLoc];
         %--------------
         
-        % Starting stimulus states for fixaiton (p.trial.stimulus.states
-        % different then p.trial.pldaps.trialStates)
+        % Starting stimulus states for fixaiton (don't forget p.trial.stimulus.states different then p.trial.pldaps.trialStates)
         p.trial.state = p.trial.stimulus.states.START; % NEED THIS!
         p.trial.stimulus.showFixationPoint = 1; % fix on (could just put this in setup)
-        p.trial.stimulus.timeFpOn = NaN; % do we have to explicitly NaN these???? i don't think so
-        p.trial.stimulus.timeTargetOn = NaN;
-        %p.trial.stimulus.showTarg = 0; %reset targ, not needed now
         
-        p.trial.stimulus.fpWin = p.trial.stimulus.fpWin*p.trial.display.ppd; % deg to pix
+        p.trial.stimulus.fpWin = p.trial.stimulus.fpWin*p.trial.display.ppd; % deg to pix (needed)
         
         
         % *** FRAME STATES *** % 
@@ -60,7 +56,7 @@ pldapsDefaultTrialFunction(p,state);
          if p.trial.stimulus.showFixationPoint && p.trial.ttime > p.trial.stimulus.preTrial
              Screen('Drawdots',  p.trial.display.overlayptr,  p.trial.stimulus.fixationXY, ...
                  p.trial.stimulus.fixdotW , p.trial.display.clut.fixation, p.trial.display.ctr(1:2),1);
-             if isnan(p.trial.stimulus.timeFpOn) % not sure if these time stamps are working
+             if isnan(p.trial.stimulus.timeFpOn) 
                  p.trial.stimulus.timeFpOn = p.trial.ttime;
                  p.trial.stimulus.frameFpOn = p.trial.iFrame;
              end
@@ -68,17 +64,19 @@ pldapsDefaultTrialFunction(p,state);
          
          % Drawing Target window
          if p.trial.stimulus.showTargWin
-             Screen('FrameRect', p.trial.display.overlayptr, p.trial.display.clut.window, p.trial.stimulus.targRect); % perhaps should be regular screen(not overlay) if actually showing it (which screen is which screen?)
+             Screen('FrameRect', p.trial.display.overlayptr, p.trial.display.clut.window, p.trial.stimulus.targRect); 
          end
          
          % Drawing target 
-         if ~isnan(p.trial.stimulus.timeFpEntered) %&& p.trial.stimulus.showTarg % flag not needed now
+         if ~isnan(p.trial.stimulus.timeFpEntered) 
              if p.trial.ttime > (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered) && p.trial.ttime < (p.trial.stimulus.targOnset + p.trial.stimulus.timeFpEntered + p.trial.stimulus.targDuration(2)) % targ duration 2 is for memory guided, change this when vis-guided built in
                  Screen('Drawdots',  p.trial.display.overlayptr, p.trial.stimulus.targLoc, ...
                      p.trial.stimulus.fixdotW, p.trial.display.clut.red, p.trial.display.ctr(1:2),1);
-                 if isnan(p.trial.stimulus.timeTargetOn) % not sure if these time stamps are working
+                 if isnan(p.trial.stimulus.timeTargetOn) 
                      p.trial.stimulus.timeTargetOn = p.trial.ttime;
                      p.trial.stimulus.frameTargetOn = p.trial.iFrame;
+                     p.trial.stimulus.timeTargetOff = p.trial.stimulus.timeTargetOn + p.trial.stimulus.targDuration(2);
+                     % didn't add frameTargetOff here
                  end
              end
          end
@@ -146,7 +144,7 @@ function p = checkFixation(p)
         
         if p.trial.state == p.trial.stimulus.states.FPHOLD
             
-            if fixating && p.trial.ttime > (p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpHoldTime) % || p.trial.iFrame==p.trial.pldaps.maxFrames) % still need max frames thing here?
+            if fixating && p.trial.ttime > (p.trial.stimulus.timeFpEntered + p.trial.stimulus.fpHoldTime) 
                 
                 % Turn off fixation point (queue to make saccade)
                 p.trial.stimulus.showFixationPoint = 0;
@@ -154,7 +152,7 @@ function p = checkFixation(p)
                 if p.trial.datapixx.use
                     pds.datapixx.flipBit(p.trial.event.FIXATION,p.trial.pldaps.iTrial)
                 end
-%                 p.trial.ttime      = GetSecs - p.trial.trstart;
+
                 p.trial.stimulus.timeFpOff  = p.trial.ttime;
                 p.trial.stimulus.frameFpOff = p.trial.iFrame;
                 
